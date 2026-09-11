@@ -1,4 +1,4 @@
-import serverModule from '../dist/server.cjs';
+import serverModule from './server.cjs';
 
 const app =
   (serverModule as any)?.default?.default ||
