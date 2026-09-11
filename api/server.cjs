@@ -139,13 +139,12 @@ async function verifyFirebaseIdToken(idToken) {
 var import_supabase_js = require("@supabase/supabase-js");
 var import_dotenv = __toESM(require("dotenv"), 1);
 import_dotenv.default.config();
-var SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-var SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
-if (!SUPABASE_URL) {
-  console.warn("[Supabase Admin] SUPABASE_URL / VITE_SUPABASE_URL is not set in environment.");
-}
+var FALLBACK_SUPABASE_URL = "https://hrrmvobrdgqcsdzwtcjr.supabase.co";
+var FALLBACK_SUPABASE_KEY = "sb_publishable_1B17n2ac9r_8BtdNIEWzug_u8K9qHa8";
+var SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL).trim();
+var SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_KEY).trim();
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn("[Supabase Admin] SUPABASE_SERVICE_ROLE_KEY is not set. Falling back to ANON key. For full security, provide SUPABASE_SERVICE_ROLE_KEY in .env.");
+  console.warn("[Supabase Admin] SUPABASE_SERVICE_ROLE_KEY is not set. Using publishable client key.");
 }
 var supabaseAdmin = (0, import_supabase_js.createClient)(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
@@ -747,6 +746,7 @@ async function requireFirebaseAuth(req, res, next) {
 }
 var ALLOWED_BUCKETS = ["post-media", "story-media", "profile-images", "general-media"];
 async function ensurePublicBuckets() {
+  if (process.env.VERCEL) return;
   try {
     for (const b of ALLOWED_BUCKETS) {
       await supabaseAdmin.storage.updateBucket(b, { public: true });

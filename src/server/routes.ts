@@ -57,8 +57,9 @@ export async function requireFirebaseAuth(
 // Allowed Storage Buckets
 const ALLOWED_BUCKETS = ['post-media', 'story-media', 'profile-images', 'general-media'];
 
-// Ensure all buckets are set to public on startup
+// Ensure all buckets are set to public on startup (skip in serverless functions to avoid blocking)
 async function ensurePublicBuckets() {
+  if (process.env.VERCEL) return;
   try {
     for (const b of ALLOWED_BUCKETS) {
       await supabaseAdmin.storage.updateBucket(b, { public: true });
