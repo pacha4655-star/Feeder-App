@@ -358,8 +358,13 @@ export function analyzeUserCommunication(
   let intent: UserCommunicationProfile['intent'] = 'general';
   let urgency: UserCommunicationProfile['urgency'] = 'low';
 
-  // 1. Emergency Trauma / Bleeding
+  // 1. Emergency Trauma / Bleeding / Urgent Help
   if (
+    lower.includes('urgent') ||
+    lower.includes('emergency') ||
+    lower.includes('காப்பாத்துங்க') ||
+    lower.includes('bachao') ||
+    lower.includes('rescue') ||
     lower.includes('hit by') ||
     lower.includes('accident') ||
     lower.includes('bleeding') ||
@@ -448,14 +453,17 @@ export function analyzeUserCommunication(
   }
   // 7. Location / Vet search (including Tanglish "inga pakkathula vet iruka?")
   else if (
-    lower.includes('vet near me') ||
+    lower.includes('nearby vet') ||
+    lower.includes('vet near') ||
     lower.includes('nearest vet') ||
+    lower.includes('find clinic') ||
+    lower.includes('clinic near') ||
+    lower.includes('hospital near') ||
+    lower.includes('animal hospital') ||
     lower.includes('vet clinic') ||
     lower.includes('vet hospital') ||
     lower.includes('vet hospitl') ||
     lower.includes('emergency vet') ||
-    lower.includes('clinic near') ||
-    lower.includes('hospital near') ||
     lower.includes('pakkathula vet') ||
     lower.includes('inga pakkathula') ||
     lower.includes('vet kitta kondu poganuma') ||
@@ -522,8 +530,9 @@ export function generateContextualDynamicResponse(
   // --- 0. SIMPLE GREETINGS (SHORT, NATURAL, CONVERSATIONAL) ---
   if (intent === 'greeting') {
     if (lang === 'tanglish') {
+      const greetName = lower.includes('nanba') ? 'nanba' : 'namba';
       return {
-        reply: `Hi namba! 🐾 Sollu, enna help venum?`,
+        reply: `Hi ${greetName}! 🐾 Sollu, unga animal friend-ku enna help venum?`,
         suggestions: ['🐾 Pet health question', '🥗 Safe food guide', '🩺 Find Nearby Vets'],
         actions: [],
         detectedLanguage: 'tanglish',
@@ -1136,6 +1145,8 @@ export async function handleChatMessage(
 ): Promise<ChatResponse> {
   const userLoc = context?.location || 'your area';
 
+  console.log(`[Pawsy] Request received: "${message.slice(0, 45)}"`);
+
   // 1. If Gemini client is available, try generating response via Gemini
   if (geminiClient) {
     try {
@@ -1143,7 +1154,7 @@ export async function handleChatMessage(
 
       // Pass conversation history turns safely
       if (Array.isArray(history) && history.length > 0) {
-        for (const turn of history.slice(-8)) {
+        for (const turn of history.slice(-10)) {
           contents.push({
             role: turn.role === 'user' ? 'user' : 'model',
             parts: [{ text: turn.text || (turn as any)?.content || '' }]
@@ -1157,18 +1168,34 @@ export async function handleChatMessage(
         parts: [{ text: `[User Location: ${userLoc}]\n\n${message}` }]
       });
 
-      const response = await geminiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction: CHATBOT_SYSTEM_INSTRUCTION,
-          temperature: 0.7,
-        }
-      });
+      console.log('[Pawsy] AI provider request started');
+      let response: any = null;
+      try {
+        response = await geminiClient.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents,
+          config: {
+            systemInstruction: CHATBOT_SYSTEM_INSTRUCTION,
+            temperature: 0.7,
+          }
+        });
+      } catch (primaryModelErr: any) {
+        console.warn('[Pawsy] gemini-2.0-flash failed, attempting gemini-1.5-flash:', primaryModelErr.message || primaryModelErr);
+        response = await geminiClient.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents,
+          config: {
+            systemInstruction: CHATBOT_SYSTEM_INSTRUCTION,
+            temperature: 0.7,
+          }
+        });
+      }
 
+      console.log('[Pawsy] AI provider response received');
       const replyText = response.text?.trim();
       if (replyText) {
         const analysis = analyzeUserCommunication(message, history, context);
+        console.log(`[Pawsy] Response returned from Gemini (detected: ${analysis.primaryLanguage})`);
         return {
           reply: replyText,
           suggestions: analysis.primaryLanguage === 'ta' || analysis.primaryLanguage === 'tanglish'
@@ -1191,13 +1218,15 @@ export async function handleChatMessage(
         };
       }
     } catch (geminiError: any) {
-      console.warn('[Gemini Service] Fallback to multilingual knowledge engine:', geminiError.message || geminiError);
+      console.warn('[Pawsy] AI request failed: contextual engine fallback engaged -', geminiError.message || geminiError);
     }
   }
 
   // 2. Perform deep semantic analysis and dynamic response synthesis
   const analysis = analyzeUserCommunication(message, history, context);
-  return generateContextualDynamicResponse(analysis, message, history, context);
+  const result = generateContextualDynamicResponse(analysis, message, history, context);
+  console.log(`[Pawsy] Response returned from contextual engine (detected: ${analysis.primaryLanguage})`);
+  return result;
 }
 
 function lowerMentionsVet(text: string): boolean {

@@ -1,31 +1,40 @@
 import { Animal, Community, HelpRequest, Post, User, AdoptionListing, FosterRequest, FeedingPoint, NotificationItem, NearbyMarker, VeterinaryHospital } from '../types';
 import { resolveApiUrl } from '../utils/apiConfig';
 
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+async function fetchJson<T>(
+  url: string,
+  options?: RequestInit & { timeoutMs?: number }
+): Promise<T> {
   const targetUrl = resolveApiUrl(url);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutDuration = options?.timeoutMs || 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
   try {
+    const { timeoutMs: _t, ...fetchOptions } = options || {};
     const res = await fetch(targetUrl, {
       headers: {
         'Content-Type': 'application/json',
-        ...options?.headers
+        ...fetchOptions?.headers
       },
-      signal: options?.signal || controller.signal,
-      ...options
+      signal: fetchOptions?.signal || controller.signal,
+      ...fetchOptions
     });
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(err.error || `HTTP error ${res.status}`);
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      const errorObj = new Error(err.error || `HTTP error ${res.status}`);
+      (errorObj as any).status = res.status;
+      throw errorObj;
     }
     return res.json();
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error(`Request to '${url}' timed out after 10 seconds.`);
+      const timeoutError = new Error(`Request to '${url}' timed out after ${Math.round(timeoutDuration / 1000)} seconds.`);
+      (timeoutError as any).isTimeout = true;
+      throw timeoutError;
     }
     throw err;
   }
@@ -61,7 +70,7 @@ export const api = {
     return data.hospitals || [];
   },
 
-  // AI Chatbot (Pawsy) powered by Gemini
+  // AI Chatbot (Pawsy) powered by Gemini & Contextual Engine
   async sendChatMessage(
     message: string,
     history?: { role: 'user' | 'model'; text: string }[],
@@ -74,10 +83,12 @@ export const api = {
     reply: string;
     suggestions?: string[];
     actions?: { type: string; label: string; targetId?: string }[];
+    detectedLanguage?: string;
   }> {
     return fetchJson('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message, history, context })
+      body: JSON.stringify({ message, history, context }),
+      timeoutMs: 25000
     });
   },
 

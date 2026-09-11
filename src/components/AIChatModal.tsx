@@ -85,7 +85,11 @@ export const AIChatModal: React.FC = () => {
   if (!showAIChat) return null;
 
   const handleSendMessage = async (textToSend?: string) => {
-    const text = (textToSend || inputMessage).trim();
+    let rawText = textToSend || inputMessage;
+    if (rawText.startsWith('Retry: ')) {
+      rawText = rawText.replace('Retry: ', '');
+    }
+    const text = rawText.trim();
     if (!text || isLoading) return;
 
     const userMsg: ChatMessage = {
@@ -122,12 +126,22 @@ export const AIChatModal: React.FC = () => {
       };
 
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Chat error:', err);
+      let errorContent = "Sorry, Pawsy is temporarily resting. Please try again in a moment, or check the Nearby Map for local clinic information.";
+
+      if (err?.isTimeout || err?.message?.toLowerCase()?.includes('timed out')) {
+        errorContent = "Pawsy took a little too long to respond. Please check your connection and try again.";
+      } else if (!navigator.onLine || err?.message?.toLowerCase()?.includes('network') || err?.message?.toLowerCase()?.includes('failed to fetch')) {
+        errorContent = "Connection problem. Please check your internet connection and try again.";
+      } else if (err?.status === 429) {
+        errorContent = "Pawsy is receiving high message volume right now. Please wait a moment and try again.";
+      }
+
       const errorMsg: ChatMessage = {
         id: `err_${Date.now()}`,
         role: 'assistant',
-        content: `Sorry, I couldn't process that right now. Please try again, or check the Nearby Map for local veterinary clinics.`,
+        content: errorContent,
         timestamp: 'Just now',
         suggestions: [
           'Retry: ' + text,

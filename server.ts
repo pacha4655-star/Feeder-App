@@ -67,23 +67,31 @@ app.get('/firebase-messaging-sw.js', (_req, res) => {
   res.sendFile(path.resolve(process.cwd(), 'public', 'firebase-messaging-sw.js'));
 });
 
-// Mount authenticated Firebase -> Supabase backend bridge routes
+// Mount authenticated Firebase -> Supabase backend bridge routes (support both /api and stripped paths)
 app.use('/api', backendRouter);
+app.use('/', backendRouter);
 
 import { handleChatMessage } from './src/server/aiChatService';
 
 // Initialize server-side Gemini client with valid API key check
-const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+const geminiApiKey = (
+  process.env.GEMINI_API_KEY ||
+  process.env.GOOGLE_AI_KEY ||
+  process.env.GOOGLE_AI_API_KEY
+)?.trim();
+
 const ai = geminiApiKey && geminiApiKey.length > 5
   ? new GoogleGenAI({
       apiKey: geminiApiKey,
       httpOptions: {
         headers: {
-          'User-Agent': 'aistudio-build',
+          'User-Agent': 'feeder-pawsy-ai',
         },
       },
     })
   : null;
+
+console.log(`[Pawsy] AI provider status: ${ai ? 'Google Gemini (@google/genai) active' : 'Running on multilingual context engine (no Gemini key configured)'}`);
 
 // Haversine distance formula (in km)
 function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -119,7 +127,7 @@ const WORLD_CITIES = [
 ];
 
 // --- REAL-WORLD LOCATION SERVICES ---
-app.get('/api/location/reverse-geocode', async (req, res) => {
+app.get(['/api/location/reverse-geocode', '/location/reverse-geocode'], async (req, res) => {
   const lat = parseFloat(req.query.lat as string);
   const lng = parseFloat(req.query.lng as string);
 
@@ -180,7 +188,7 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
   });
 });
 
-app.get('/api/location/geocode', async (req, res) => {
+app.get(['/api/location/geocode', '/location/geocode'], async (req, res) => {
   const q = ((req.query.q as string) || '').trim();
   if (!q) {
     return res.json({ results: WORLD_CITIES.slice(0, 10) });
@@ -246,7 +254,7 @@ app.get('/api/location/geocode', async (req, res) => {
 import { fetchNearbyPetPlaces } from './src/server/placesService';
 
 // --- REAL-WORLD LIVE PLACES API (OPENSTREETMAP OVERPASS) ---
-app.get('/api/location/nearby-places', async (req, res) => {
+app.get(['/api/location/nearby-places', '/location/nearby-places'], async (req, res) => {
   const lat = parseFloat(req.query.lat as string);
   const lng = parseFloat(req.query.lng as string);
   const category = (req.query.category as any) || 'all';
@@ -271,7 +279,7 @@ app.get('/api/location/nearby-places', async (req, res) => {
   }
 });
 
-app.get('/api/location/veterinary', async (req, res) => {
+app.get(['/api/location/veterinary', '/location/veterinary'], async (req, res) => {
   const lat = parseFloat(req.query.lat as string);
   const lng = parseFloat(req.query.lng as string);
   const emergencyOnly = req.query.emergencyOnly === 'true';
@@ -298,7 +306,7 @@ app.get('/api/location/veterinary', async (req, res) => {
 });
 
 // --- GLOBAL MULTILINGUAL AI CHATBOT (PAWSY AI) ---
-app.post('/api/chat', async (req, res) => {
+app.post(['/api/chat', '/chat'], async (req, res) => {
   const { message, history, context } = req.body;
 
   if (!message || typeof message !== 'string') {
@@ -309,9 +317,9 @@ app.post('/api/chat', async (req, res) => {
     const chatResult = await handleChatMessage(message, history, context, ai);
     return res.json(chatResult);
   } catch (err: any) {
-    console.error('[Chat Endpoint] Error:', err);
+    console.error('[Chat Endpoint] Safe error:', err.message || err);
     return res.status(500).json({
-      error: 'Sorry, I could not process that right now. Please try again.',
+      error: 'Pawsy communication issue',
       reply: 'Sorry, I had a momentary communication issue. Please try your message again, or check the Nearby Map / Urgent Help section.',
       suggestions: ['🚨 Urgent Help', '🩺 Nearby Vets'],
       actions: []
