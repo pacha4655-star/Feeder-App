@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "UserProfile": {
+      "collection": "users",
+      "fields": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "avatar": { "type": "string" },
+        "bio": { "type": "string" },
+        "location": { "type": "string" },
+        "roles": { "type": "array" },
+        "interests": { "type": "array" },
+        "followerIds": { "type": "array" },
+        "followingIds": { "type": "array" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "postsCount": { "type": "number" },
+        "karmaPoints": { "type": "number" },
+        "badge": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Post": {
+      "collection": "posts",
+      "fields": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "userLocation": { "type": "string" },
+        "type": { "type": "string" },
+        "content": { "type": "string" },
+        "media": { "type": "array" },
+        "likedUserIds": { "type": "array" },
+        "likesCount": { "type": "number" },
+        "comments": { "type": "array" },
+        "commentsCount": { "type": "number" },
+        "sharesCount": { "type": "number" },
+        "communityId": { "type": "string" },
+        "communityName": { "type": "string" },
+        "animalId": { "type": "string" },
+        "animalName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Comment": {
+      "collection": "comments",
+      "fields": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "userBadge": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "likedUserIds": { "type": "array" }
+      }
+    },
+    "Story": {
+      "collection": "stories",
+      "fields": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "caption": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "viewedUserIds": { "type": "array" }
+      }
+    },
+    "HelpRequest": {
+      "collection": "help_requests",
+      "fields": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "urgency": { "type": "string" },
+        "status": { "type": "string" },
+        "image": { "type": "string" },
+        "postedBy": { "type": "object" },
+        "volunteersCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  }
+}
+
