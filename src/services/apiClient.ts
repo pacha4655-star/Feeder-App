@@ -28,21 +28,34 @@ export async function authenticatedFetch<T = any>(
     ...(options.headers as Record<string, string>),
   };
 
-  const response = await fetch(targetUrl, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  if (!response.ok) {
-    let errorMsg = `Request failed (HTTP ${response.status})`;
-    try {
-      const errorJson = await response.json();
-      if (errorJson.error) {
-        errorMsg = errorJson.error;
-      }
-    } catch (e) {}
-    throw new Error(errorMsg);
+  try {
+    const response = await fetch(targetUrl, {
+      ...options,
+      headers,
+      signal: options.signal || controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      let errorMsg = `Request failed (HTTP ${response.status})`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson.error) {
+          errorMsg = errorJson.error;
+        }
+      } catch (e) {}
+      throw new Error(errorMsg);
+    }
+
+    return response.json();
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Request to '${endpoint}' timed out after 10 seconds.`);
+    }
+    throw err;
   }
-
-  return response.json();
 }

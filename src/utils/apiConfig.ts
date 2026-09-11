@@ -45,19 +45,30 @@ export const resolveApiUrl = (endpoint: string): string => {
     return endpoint;
   }
 
-  const base = getApiBaseUrl();
-  if (base) {
-    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    return `${base}${path}`;
-  }
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  // On native Android, fail clearly instead of silently falling back to a root-relative path
+  // On native Android (Capacitor WebView), requests MUST use an absolute HTTPS backend URL
   if (isNativeApp()) {
+    const base = getApiBaseUrl();
+    if (base) {
+      return `${base}${path}`;
+    }
     const errorMsg = `[Feeder API Config Error] Native Android request to '${endpoint}' blocked: VITE_API_BASE_URL is missing in production build. Define VITE_API_BASE_URL in .env.production.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
 
-  return endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // On Web (browser):
+  // Relative '/api/...' is the authoritative web standard.
+  // In development, Vite/Express handles it on localhost:3000.
+  // In production on Vercel, Vercel Serverless handles it on the same origin without CORS or DNS failure.
+  // If an external backend URL is explicitly configured AND matches window.location.origin, preserve it:
+  const base = getApiBaseUrl();
+  if (base && typeof window !== 'undefined' && window.location.origin === base) {
+    return `${base}${path}`;
+  }
+
+  return path;
 };
+
 

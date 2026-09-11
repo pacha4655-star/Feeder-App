@@ -3,18 +3,32 @@ import { resolveApiUrl } from '../utils/apiConfig';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const targetUrl = resolveApiUrl(url);
-  const res = await fetch(targetUrl, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers
-    },
-    ...options
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Network error' }));
-    throw new Error(err.error || `HTTP error ${res.status}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+      },
+      signal: options?.signal || controller.signal,
+      ...options
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(err.error || `HTTP error ${res.status}`);
+    }
+    return res.json();
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Request to '${url}' timed out after 10 seconds.`);
+    }
+    throw err;
   }
-  return res.json();
 }
 
 export const api = {

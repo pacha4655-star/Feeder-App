@@ -525,31 +525,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           isVerified: true
         };
 
+        // Instantly authenticate user with baseline credentials so UI does not freeze
+        setUser(baselineUser);
+        setShowWelcome(false);
+        setIsLoading(false);
+        setIsAuthLoading(false);
+
+        // Hydrate full profile from Supabase / backend in the background without blocking the UI
         try {
-          // Hydrate real user profile directly from Supabase by verified Firebase UID
           const profile = await getUserProfileFromFirestore(fbUser.uid);
           if (profile) {
-            setUser({
-              ...baselineUser,
+            setUser(prev => ({
+              ...(prev || baselineUser),
               ...profile,
               followersCount: Array.isArray(profile.followerIds) ? profile.followerIds.length : (profile.followersCount || 0),
               followingCount: Array.isArray(profile.followingIds) ? profile.followingIds.length : (profile.followingCount || 0),
-            });
+            }));
             if (profile.location && selectedLocation === 'Select location') {
               setSelectedLocation(profile.location);
             }
           } else {
-            // First-time user signup: sync baseline profile once to Supabase PostgreSQL
-            setUser(baselineUser);
-            await syncUserProfileToFirestore(baselineUser);
+            // First-time user: sync baseline profile to Supabase PostgreSQL in background
+            syncUserProfileToFirestore(baselineUser).catch(e => {
+              console.warn('[Auth State] Background profile sync notice:', e);
+            });
           }
         } catch (authErr) {
           console.warn('[Auth State] Supabase profile restoration notice:', authErr);
-          setUser(baselineUser);
-        } finally {
-          setShowWelcome(false);
-          setIsLoading(false);
-          setIsAuthLoading(false);
         }
       } else {
         setUser(null);

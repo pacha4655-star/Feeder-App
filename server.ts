@@ -1,18 +1,38 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { backendRouter } from './src/server/routes';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-// Enable CORS for mobile apps, Capacitor WebView origins, and cross-origin clients
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/,
+  /^https:\/\/[a-zA-Z0-9-]+\.feeder\.org$/,
+  /^https:\/\/feeder\.org$/,
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^capacitor:\/\/localhost$/,
+  /^https:\/\/localhost$/,
+];
+
+// Enable dynamic CORS for mobile apps, Capacitor WebView origins, and Vercel/custom clients
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    const isAllowed = ALLOWED_ORIGIN_PATTERNS.some(pattern => pattern.test(origin));
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Info');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Info, Accept');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
@@ -302,6 +322,7 @@ app.post('/api/chat', async (req, res) => {
 // --- VITE MIDDLEWARE / PRODUCTION STATIC ---
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -323,4 +344,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Start long-lived server in standalone Node/Render environments
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app };
+export default app;

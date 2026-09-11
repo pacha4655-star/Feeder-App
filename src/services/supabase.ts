@@ -14,11 +14,11 @@ const getEnv = (key: string, defaultValue: string): string => {
   return defaultValue;
 };
 
-// Safe frontend Supabase configuration
-export const supabaseUrl = getEnv('VITE_SUPABASE_URL', 'https://your-supabase-project.supabase.co');
+// Safe frontend Supabase configuration (public client-side keys protected by PostgreSQL RLS)
+export const supabaseUrl = getEnv('VITE_SUPABASE_URL', 'https://hrrmvobrdgqcsdzwtcjr.supabase.co');
 export const supabaseAnonKey = getEnv(
   'VITE_SUPABASE_ANON_KEY',
-  getEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'your-supabase-anon-key')
+  getEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_1B17n2ac9r_8BtdNIEWzug_u8K9qHa8')
 );
 
 // Create and export the Supabase client

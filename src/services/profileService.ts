@@ -1,6 +1,7 @@
 import { supabase, safeRemoveChannel, createRealtimeChannel } from './supabase';
 import { User } from '../types';
 import { authenticatedFetch } from './apiClient';
+import { resolveApiUrl } from '../utils/apiConfig';
 
 /**
  * Maps a Supabase `profiles` record to the frontend `User` interface
@@ -40,39 +41,58 @@ export const getUserProfileFromSupabase = async (userId: string): Promise<User |
   try {
     if (!userId) return null;
 
+    // 1. Direct Supabase Query
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('firebase_uid', userId)
       .maybeSingle();
 
-    if (error) {
-      console.warn('[Profile Service] Error fetching profile:', error.message);
-      return null;
+    if (!error && data) {
+      // Fetch following and follower IDs from followers table
+      const [followingRes, followersRes, postsCountRes] = await Promise.all([
+        supabase.from('followers').select('following_uid').eq('follower_uid', userId),
+        supabase.from('followers').select('follower_uid').eq('following_uid', userId),
+        supabase.from('posts').select('*', { count: 'exact', head: true }).eq('firebase_uid', userId),
+      ]);
+
+      const followingIds = (followingRes.data || []).map(r => r.following_uid);
+      const followerIds = (followersRes.data || []).map(r => r.follower_uid);
+      const postsCount = typeof postsCountRes.count === 'number' ? postsCountRes.count : 0;
+
+      const user = mapProfileToUser(data);
+      return {
+        ...user,
+        followingIds,
+        followerIds,
+        followingCount: followingIds.length,
+        followersCount: followerIds.length,
+        postsCount,
+      };
     }
 
-    if (!data) return null;
+    // 2. Fallback: Query backend GET /api/profile/:uid (runs with service role privileges)
+    try {
+      const targetUrl = resolveApiUrl(`/api/profile/${encodeURIComponent(userId)}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(targetUrl, {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-    // Fetch following and follower IDs from followers table
-    const [followingRes, followersRes, postsCountRes] = await Promise.all([
-      supabase.from('followers').select('following_uid').eq('follower_uid', userId),
-      supabase.from('followers').select('follower_uid').eq('following_uid', userId),
-      supabase.from('posts').select('*', { count: 'exact', head: true }).eq('firebase_uid', userId),
-    ]);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.profile) {
+          return mapProfileToUser(json.profile);
+        }
+      }
+    } catch (e) {
+      // Non-blocking fallback
+    }
 
-    const followingIds = (followingRes.data || []).map(r => r.following_uid);
-    const followerIds = (followersRes.data || []).map(r => r.follower_uid);
-    const postsCount = typeof postsCountRes.count === 'number' ? postsCountRes.count : 0;
-
-    const user = mapProfileToUser(data);
-    return {
-      ...user,
-      followingIds,
-      followerIds,
-      followingCount: followingIds.length,
-      followersCount: followerIds.length,
-      postsCount,
-    };
+    return null;
   } catch (err) {
     console.error('[Profile Service] Unexpected error in getUserProfileFromSupabase:', err);
     return null;
@@ -83,10 +103,14 @@ export const getUserProfileFromSupabase = async (userId: string): Promise<User |
  * Inserts or updates a user profile in Supabase via authenticated backend bridge
  */
 export const syncUserProfileToSupabase = async (user: User): Promise<void> => {
-  await authenticatedFetch('/api/profile/sync', {
-    method: 'POST',
-    body: JSON.stringify(user),
-  });
+  try {
+    await authenticatedFetch('/api/profile/sync', {
+      method: 'POST',
+      body: JSON.stringify(user),
+    });
+  } catch (err: any) {
+    console.warn('[Profile Service] Backend profile sync notice:', err.message || err);
+  }
 };
 
 /**
