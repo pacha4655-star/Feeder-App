@@ -70,60 +70,61 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row min-h-0 md:min-h-[580px] font-sans my-auto">
+    <div className="w-full max-w-[420px] sm:max-w-lg md:max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row min-h-0 md:min-h-[560px] lg:min-h-[580px] font-sans my-auto transition-all duration-200">
       {/* Left Column (Hero Art & Badges) */}
-      <div className="w-full md:w-5/12 bg-gradient-to-br from-[#192A1D] via-[#214328] to-[#2E7D32] p-3 xs:p-4 sm:p-6 md:p-8 flex flex-col justify-between relative text-white">
+      <div className="w-full md:w-5/12 bg-gradient-to-br from-[#192A1D] via-[#214328] to-[#2E7D32] p-4 sm:p-6 md:p-8 flex flex-col justify-between relative text-white select-none">
         <div>
-          <div className="flex items-center justify-between mb-1 sm:mb-4">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
             <FeederLogo size="md" showText={true} textColor="text-white" />
           </div>
 
-          <h2 className="text-base xs:text-lg sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug sm:leading-tight mt-1 sm:mt-5">
+          <h2 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug sm:leading-tight mt-2 sm:mt-5 font-['Outfit',sans-serif]">
             Where animal people <span className="text-green-400">connect</span> & care.
           </h2>
-          <p className="text-[11px] xs:text-xs sm:text-sm text-green-100/90 mt-1 sm:mt-3 leading-relaxed hidden xs:block">
+          <p className="text-xs sm:text-sm text-green-100/90 mt-1.5 sm:mt-3 leading-relaxed hidden sm:block">
             Coordinating street animal feedings, urgent veterinary rescues, community foster networks, and ethical pet adoptions worldwide.
           </p>
         </div>
 
         {/* Hero Animal Image */}
-        <div className="relative my-1.5 sm:my-4 md:my-5 rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white/10 border border-white/20 aspect-[21/9] xs:aspect-[16/9] sm:aspect-[4/3] max-h-24 xs:max-h-32 sm:max-h-52 md:max-h-none">
+        <div className="relative my-2.5 sm:my-4 md:my-5 rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white/10 border border-white/20 aspect-[21/9] sm:aspect-[16/10] md:aspect-auto md:flex-1 min-h-[90px] sm:min-h-[140px] md:min-h-[160px] max-h-32 sm:max-h-52 md:max-h-none">
           <img
             src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80"
             alt="Animal friends"
             className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-          <div className="absolute bottom-1.5 xs:bottom-2 left-2 right-2 flex items-center justify-between text-white font-medium gap-1">
-            <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] truncate">
-              <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400 fill-green-400 flex-shrink-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-white font-medium gap-1.5">
+            <span className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium">
+              <Heart className="w-3 h-3 text-green-400 fill-green-400 flex-shrink-0" />
               <span>Community Care</span>
             </span>
-            <span className="bg-green-600 backdrop-blur-md px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold truncate">
+            <span className="bg-green-600 backdrop-blur-md px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold text-white shadow-xs">
               Real Network
             </span>
           </div>
         </div>
 
         {/* Value Prop Badges */}
-        <div className="flex items-center gap-2 sm:gap-3 text-[10px] xs:text-[11px] sm:text-xs text-green-100/90 pt-1 sm:pt-2 border-t border-white/10 flex-wrap">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" /> Real Verified Feeders
+        <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-green-100/90 pt-2 sm:pt-3 border-t border-white/15 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" />
+            <span>Real Verified Feeders</span>
           </span>
-          <span>•</span>
+          <span className="opacity-60">•</span>
           <span>Cloud Synchronized</span>
         </div>
       </div>
 
       {/* Right Column: Authentication Form */}
-      <div className="w-full md:w-7/12 p-3 xs:p-4 sm:p-6 md:p-8 flex flex-col justify-between bg-white">
+      <div className="w-full md:w-7/12 p-4 sm:p-6 md:p-8 flex flex-col justify-between bg-white">
         <div>
           <div>
-            <h1 className="text-base xs:text-lg sm:text-2xl lg:text-3xl font-extrabold text-[#192A1D] tracking-tight leading-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#192A1D] tracking-tight leading-tight font-['Outfit',sans-serif]">
               {authMode === 'register' ? 'Join Feeder Community' : 'Welcome back'}
             </h1>
-            <p className="text-[11px] xs:text-xs sm:text-sm font-medium text-[#4B6354] mt-0.5 sm:mt-1">
+            <p className="text-xs sm:text-sm font-medium text-[#4B6354] mt-1">
               {authMode === 'register'
                 ? 'Create a verified account to coordinate animal feeding & rescue.'
                 : 'Sign in to access your local community feed and alerts.'}
@@ -132,7 +133,7 @@ export const WelcomeScreen: React.FC = () => {
 
           {/* Error Banner */}
           {errorMessage && (
-            <div className="mt-2.5 sm:mt-4 p-2 sm:p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in duration-150">
+            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in duration-150">
               <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1 leading-relaxed">
                 <span className="font-semibold">{errorMessage}</span>
@@ -141,15 +142,15 @@ export const WelcomeScreen: React.FC = () => {
           )}
 
           {/* Social Google Sign-In */}
-          <div className="mt-2.5 sm:mt-5 space-y-2 sm:space-y-3">
+          <div className="mt-3 sm:mt-5 space-y-2.5 sm:space-y-3">
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isSubmitting}
               id="continue-with-google"
-              className="w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 sm:gap-3 border border-slate-300 shadow-2xs active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full h-11 sm:h-12 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 border border-slate-200 hover:border-slate-300 shadow-2xs active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
             >
-              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 flex-shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
@@ -170,41 +171,41 @@ export const WelcomeScreen: React.FC = () => {
               <span className="truncate">Continue with Google Account</span>
             </button>
 
-            <div className="flex items-center gap-3 my-1.5 sm:my-3">
+            <div className="flex items-center gap-3 my-2 sm:my-3">
               <div className="flex-1 h-px bg-slate-200" />
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Or email</span>
               <div className="flex-1 h-px bg-slate-200" />
             </div>
 
             {/* Email / Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
               {authMode === 'register' && (
                 <>
                   <div>
-                    <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5 sm:mb-1">Full Name</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2 sm:top-2.5" />
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                    <div className="relative flex items-center">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
                       <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="e.g. Priya Sharma"
                         required
-                        className="w-full pl-9 sm:pl-10 pr-3.5 py-1.5 sm:py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/10"
+                        className="w-full h-11 sm:h-12 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/15 transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5 sm:mb-1">Username</label>
-                    <div className="relative">
-                      <span className="text-slate-400 font-bold absolute left-3 top-1.5 sm:top-2 text-xs">@</span>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Username</label>
+                    <div className="relative flex items-center">
+                      <span className="text-slate-400 font-bold absolute left-3.5 text-xs pointer-events-none">@</span>
                       <input
                         type="text"
                         value={username}
                         onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                         placeholder="priya_feeder"
-                        className="w-full pl-7 sm:pl-8 pr-3.5 py-1.5 sm:py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/10"
+                        className="w-full h-11 sm:h-12 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/15 transition-all"
                       />
                     </div>
                   </div>
@@ -212,24 +213,24 @@ export const WelcomeScreen: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5 sm:mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2 sm:top-2.5" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                <div className="relative flex items-center">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
                   <input
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="you@domain.com"
                     required
-                    className="w-full pl-9 sm:pl-10 pr-3.5 py-1.5 sm:py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/10"
+                    className="w-full h-11 sm:h-12 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/15 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5 sm:mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2 sm:top-2.5" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
                   <input
                     type="password"
                     value={password}
@@ -237,7 +238,7 @@ export const WelcomeScreen: React.FC = () => {
                     placeholder="••••••••"
                     required
                     minLength={6}
-                    className="w-full pl-9 sm:pl-10 pr-3.5 py-1.5 sm:py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/10"
+                    className="w-full h-11 sm:h-12 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/15 transition-all"
                   />
                 </div>
               </div>
@@ -245,7 +246,7 @@ export const WelcomeScreen: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2 sm:py-2.5 px-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-green-700/20 active:scale-[0.98] transition-all disabled:opacity-50 mt-1 sm:mt-2"
+                className="w-full h-11 sm:h-12 px-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-green-700/20 active:scale-[0.99] transition-all disabled:opacity-50 mt-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -262,14 +263,14 @@ export const WelcomeScreen: React.FC = () => {
             </form>
 
             {/* Toggle Login / Register */}
-            <div className="text-center pt-1 sm:pt-2">
+            <div className="text-center pt-1.5 sm:pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setErrorMessage(null);
                   setAuthMode(authMode === 'login' ? 'register' : 'login');
                 }}
-                className="text-xs text-green-700 hover:text-green-800 font-bold hover:underline"
+                className="text-xs sm:text-sm text-green-700 hover:text-green-800 font-bold hover:underline py-1 transition-colors cursor-pointer"
               >
                 {authMode === 'login'
                   ? "Don't have an account? Create one"
@@ -280,7 +281,7 @@ export const WelcomeScreen: React.FC = () => {
         </div>
 
         {/* Footer info */}
-        <div className="pt-2 sm:pt-4 mt-2 sm:mt-4 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400">
+        <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-medium">
           <span>Protected with Firebase Authentication</span>
           <span className="font-semibold text-green-700">Feeder 2026</span>
         </div>

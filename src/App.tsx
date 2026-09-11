@@ -485,8 +485,10 @@ const MainAppContent: React.FC = () => {
   // If user is not logged in, show Responsive Welcome & Onboarding flow
   if (!user) {
     return (
-      <div className="min-h-[100dvh] bg-[#F3F7F5] flex flex-col items-center justify-center p-2 xs:p-3 sm:p-6 font-sans">
-        <WelcomeScreen />
+      <div className="min-h-[100dvh] w-full bg-[#F3F7F5] flex flex-col items-center justify-start sm:justify-center px-3 py-4 sm:px-6 sm:py-8 lg:p-10 overflow-y-auto pt-safe pb-safe font-sans">
+        <div className="w-full flex-1 flex flex-col items-center justify-center my-auto">
+          <WelcomeScreen />
+        </div>
         <ToastContainer />
       </div>
     );
