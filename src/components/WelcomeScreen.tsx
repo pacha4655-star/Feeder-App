@@ -12,10 +12,20 @@ import {
   Scale,
   Soup,
   Leaf,
-  Users
+  Users,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FeederLogo } from './FeederLogo';
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'ta', label: 'தமிழ் (Tamil)' },
+  { code: 'hi', label: 'हिंदी (Hindi)' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' }
+];
 
 export const WelcomeScreen: React.FC = () => {
   const { registerWithEmailAccount, loginWithEmailAccount, signInWithGoogleAccount } = useApp();
@@ -27,6 +37,10 @@ export const WelcomeScreen: React.FC = () => {
   const [username, setUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Language selector state
+  const [currentLang, setCurrentLang] = useState('English');
+  const [showLangMenu, setShowLangMenu] = useState(false);
 
   // App open entrance animation runs once on initial mount only
   const [animateEntrance, setAnimateEntrance] = useState(true);
@@ -91,34 +105,80 @@ export const WelcomeScreen: React.FC = () => {
     }
   };
 
+  const handleAppleSignIn = () => {
+    setErrorMessage('Apple Sign-In is configured for the Feeder iOS App. For web preview, please continue with Google or Email.');
+  };
+
   return (
-    <div className="w-full min-h-[100dvh] h-[100dvh] relative overflow-hidden flex flex-col justify-between bg-[#EBF3ED] dark:bg-slate-950 font-sans transition-colors duration-200">
+    <div className="w-full min-h-[100dvh] h-[100dvh] relative overflow-y-auto sm:overflow-hidden flex flex-col justify-between bg-[#EBF3ED] dark:bg-slate-950 font-sans select-none transition-colors duration-200">
       
-      {/* Desktop Ambient Nature Atmosphere */}
-      <div className="hidden md:block absolute inset-0 w-full h-full pointer-events-none select-none z-0">
+      {/* ===================================================================== */}
+      {/* FULL-SCREEN NATURAL BACKGROUND ENVIRONMENT                            */}
+      {/* ===================================================================== */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
         <img
           src="/assets/feeder-login-reference.png"
-          alt=""
-          className="w-full h-full object-cover object-[center_34%] filter blur-xl scale-110 opacity-40 dark:opacity-20"
+          alt="Feeder Natural Background"
+          className="w-full h-full object-cover object-[center_34.5%] select-none pointer-events-none filter saturate-[1.02] opacity-35 dark:opacity-20 hidden md:block"
         />
-        <div className="absolute inset-0 bg-[#EBF3ED]/80 dark:bg-slate-950/85" />
+        <div className="absolute inset-0 bg-[#EBF3ED]/75 dark:bg-slate-950/80 hidden md:block pointer-events-none" />
       </div>
 
       {/* Main Unified Experience Container (Centered on desktop, full-viewport on mobile) */}
-      <div className="w-full max-w-lg mx-auto h-full flex flex-col justify-between relative z-10">
+      <div className="w-full max-w-md sm:max-w-lg mx-auto h-full flex flex-col justify-between relative z-10 overflow-x-hidden">
         
         {/* =================================================================== */}
-        {/* TOP BRAND & HERO SECTION (Matches Second Reference Image Exactly)    */}
+        {/* TOP BRAND & HERO SECTION (Matches Reference Image Exactly)           */}
         {/* =================================================================== */}
         <div className="w-full flex flex-col flex-1 relative z-0">
           
-          {/* Top Safe-area Header with Official Feeder Brand */}
-          <div className={`pt-[max(0.65rem,env(safe-area-inset-top,0px))] px-4 flex flex-col items-center text-center ${animateEntrance ? 'anim-feeder-logo' : ''}`}>
-            <FeederLogo size="md" showText={true} textColor="text-[#1E4D2B] dark:text-white" />
+          {/* Top Status-Bar-Safe Bar with Language Selector at Top-Right */}
+          <div className="pt-[max(0.6rem,env(safe-area-inset-top,0px))] px-4 flex items-center justify-between relative">
+            <div className="w-16" /> {/* Balance spacer */}
+            
+            {/* Center Logo Area */}
+            <div className={`flex flex-col items-center text-center ${animateEntrance ? 'anim-feeder-logo' : ''}`}>
+              <FeederLogo size="md" showText={true} textColor="text-[#1E4D2B] dark:text-white" />
+            </div>
+
+            {/* Language Selector Pill (Top-Right matching reference) */}
+            <div className="w-16 flex justify-end relative">
+              <button
+                type="button"
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/85 dark:bg-slate-800/85 backdrop-blur-xs border border-slate-200/70 dark:border-slate-700/70 text-[11px] font-semibold text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Select Language"
+              >
+                <span>{currentLang}</span>
+                <ChevronDown className="w-3 h-3 text-slate-500 transition-transform duration-150" />
+              </button>
+
+              {/* Language Dropdown Menu */}
+              {showLangMenu && (
+                <div className="absolute top-8 right-0 w-36 bg-white dark:bg-slate-850 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {SUPPORTED_LANGUAGES.map(lang => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => {
+                        setCurrentLang(lang.label.split(' ')[0]);
+                        setShowLangMenu(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-green-50 dark:hover:bg-green-950/40 flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang.label}</span>
+                      {currentLang === lang.label.split(' ')[0] && (
+                        <Check className="w-3.5 h-3.5 text-[#1E4D2B] dark:text-green-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Taglines matching reference */}
-          <div className={`text-center px-4 my-1 sm:my-1.5 ${animateEntrance ? 'anim-feeder-tagline' : ''}`}>
+          {/* Taglines matching reference hierarchy */}
+          <div className={`text-center px-4 my-1 ${animateEntrance ? 'anim-feeder-tagline' : ''}`}>
             <h1 className="text-sm xs:text-base sm:text-lg font-extrabold text-[#1E4D2B] dark:text-green-300 tracking-tight leading-tight font-['Outfit',sans-serif]">
               A kinder world for every animal.
             </h1>
@@ -128,7 +188,7 @@ export const WelcomeScreen: React.FC = () => {
           </div>
 
           {/* Hero Animal Image (Focal point 34.5% preserves all animals from parrot to duck) */}
-          <div className={`w-full flex-1 min-h-[140px] max-h-[34vh] sm:max-h-[38vh] overflow-hidden relative select-none ${animateEntrance ? 'anim-feeder-hero' : ''}`}>
+          <div className={`w-full flex-1 min-h-[130px] max-h-[32vh] sm:max-h-[36vh] overflow-hidden relative select-none ${animateEntrance ? 'anim-feeder-hero' : ''}`}>
             <img
               src="/assets/feeder-login-reference.png"
               alt="Feeder Animal Family"
@@ -141,64 +201,70 @@ export const WelcomeScreen: React.FC = () => {
         {/* =================================================================== */}
         {/* BOTTOM AUTHENTICATION PANEL (Rounded white card matching reference) */}
         {/* =================================================================== */}
-        <div className={`w-full bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] shadow-[0_-10px_35px_rgba(0,0,0,0.06)] dark:shadow-[0_-10px_35px_rgba(0,0,0,0.4)] -mt-4 relative z-10 px-4 xs:px-5 sm:px-8 pt-3.5 sm:pt-4 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-between flex-shrink-0 ${animateEntrance ? 'anim-feeder-panel' : ''}`}>
+        <div className={`w-full bg-white dark:bg-slate-900 rounded-t-[36px] shadow-[0_-12px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_-12px_40px_rgba(0,0,0,0.5)] -mt-4 relative z-10 px-4 xs:px-5 sm:px-8 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-between flex-shrink-0 ${animateEntrance ? 'anim-feeder-panel' : ''}`}>
           
-          {/* Feature Icon Row (6 features matching the reference composition) */}
-          <div className="grid grid-cols-6 gap-1 text-center pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-800 select-none">
+          {/* Feature Icon Row (6 features matching reference in exact order) */}
+          <div className="grid grid-cols-6 gap-1 text-center pb-2 mb-1.5 border-b border-slate-100 dark:border-slate-800 select-none">
+            {/* 1. Find Help */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <PawPrint className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Find Help</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Find Help</span>
             </div>
 
+            {/* 2. Adopt */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Adopt</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Adopt</span>
             </div>
 
+            {/* 3. Support Feeding */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Soup className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Support Feeding</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Support Feeding</span>
             </div>
 
+            {/* 4. Know Your Rights */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Scale className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Know Your Rights</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Know Your Rights</span>
             </div>
 
+            {/* 5. Learn & Explore */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Leaf className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Learn & Explore</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Learn & Explore</span>
             </div>
 
+            {/* 6. Join a Community */}
             <div className="flex flex-col items-center">
               <div className="w-8.5 h-8.5 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[7px] xs:text-[7.5px] sm:text-[8.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Join a Community</span>
+              <span className="text-[7px] xs:text-[7.5px] sm:text-[8px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Join a Community</span>
             </div>
           </div>
 
           {/* Error Notice */}
           {errorMessage && (
-            <div className="mb-2 p-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl flex items-start gap-2 text-xs text-red-700 dark:text-red-300 animate-in fade-in duration-150">
+            <div className="mb-1.5 p-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl flex items-start gap-2 text-xs text-red-700 dark:text-red-300 animate-in fade-in duration-150">
               <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 leading-tight text-[11px]">{errorMessage}</div>
+              <div className="flex-1 leading-tight text-[10.5px]">{errorMessage}</div>
             </div>
           )}
 
           {/* Main Authentication Controls */}
           {!showEmailForm ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {/* PRIMARY CTA: Continue with Email (Forest Green Pill matching reference) */}
               <button
                 type="button"
@@ -207,20 +273,20 @@ export const WelcomeScreen: React.FC = () => {
                   setShowEmailForm(true);
                 }}
                 id="continue-with-email-btn"
-                className="w-full h-11 sm:h-12 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all cursor-pointer"
+                className="w-full h-10.5 sm:h-11.5 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all cursor-pointer"
               >
                 <Mail className="w-4 h-4 text-white" />
                 <span>Continue with Email</span>
                 <ArrowRight className="w-3.5 h-3.5 text-white/80 ml-1" />
               </button>
 
-              {/* SECONDARY CTA: Continue with Google (White Pill with border matching reference) */}
+              {/* SECONDARY CTA 1: Continue with Google (White Pill with border matching reference) */}
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
                 id="continue-with-google"
-                className="w-full h-11 sm:h-12 px-5 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full h-10.5 sm:h-11.5 px-5 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -240,8 +306,21 @@ export const WelcomeScreen: React.FC = () => {
                 )}
               </button>
 
+              {/* SECONDARY CTA 2: Continue with Apple (Matching Reference Layout) */}
+              <button
+                type="button"
+                onClick={handleAppleSignIn}
+                id="continue-with-apple"
+                className="w-full h-10.5 sm:h-11.5 px-5 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-[0.99] transition-all cursor-pointer"
+              >
+                <svg className="w-4 h-4 flex-shrink-0 fill-current" viewBox="0 0 170 170">
+                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.64-7.85-11.83-14.42-5.45-8.61-9.76-18.61-12.93-30-3.16-11.39-4.75-22.09-4.75-32.08 0-14.15 3.6-25.75 10.79-34.79 7.19-9.05 16.29-13.67 27.29-13.88 4.79 0 10.01 1.25 15.66 3.76 5.66 2.5 9.47 3.82 11.45 3.96 1.76-.14 5.68-1.52 11.75-4.14 6.07-2.61 11.39-3.8 15.96-3.56 12.08.76 21.72 5.09 28.92 13 4.24 4.67 7.42 10.23 9.53 16.68-10.45 6.31-15.6 15.02-15.45 26.13.15 8.71 3.52 16.05 10.1 22.03 6.58 5.98 14.42 9.47 23.53 10.47-2.07 6.1-4.68 12.51-7.83 19.24zm-29.47-111.4c0 7.07-2.58 13.78-7.75 20.14-6.17 7.51-13.78 11.88-22.84 13.11-.29-1.46-.43-2.92-.43-4.38 0-6.85 2.8-13.56 8.4-20.14 2.8-3.29 6.27-6.03 10.4-8.21 4.14-2.18 8.19-3.41 12.16-3.69.07 1.08.11 2.14.11 3.17z" />
+                </svg>
+                <span>Continue with Apple</span>
+              </button>
+
               {/* OR Divider matching reference */}
-              <div className="relative my-1.5 sm:my-2">
+              <div className="relative my-1">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200 dark:border-slate-700" />
                 </div>
@@ -259,7 +338,7 @@ export const WelcomeScreen: React.FC = () => {
                   setShowEmailForm(true);
                 }}
                 id="create-account-button"
-                className="w-full h-11 sm:h-12 px-5 rounded-full border-1.5 border-[#1E4D2B] dark:border-green-500 text-[#1E4D2B] dark:text-green-400 font-bold text-xs sm:text-sm hover:bg-green-50/60 dark:hover:bg-green-950/30 flex items-center justify-center transition-all active:scale-[0.99] cursor-pointer"
+                className="w-full h-10.5 sm:h-11.5 px-5 rounded-full border-1.5 border-[#1E4D2B] dark:border-green-500 text-[#1E4D2B] dark:text-green-400 font-bold text-xs sm:text-sm hover:bg-green-50/60 dark:hover:bg-green-950/30 flex items-center justify-center transition-all active:scale-[0.99] cursor-pointer"
               >
                 Create an Account
               </button>
@@ -274,7 +353,7 @@ export const WelcomeScreen: React.FC = () => {
                     setAuthMode('login');
                     setShowEmailForm(true);
                   }}
-                  className="text-xs text-slate-600 dark:text-slate-400 font-medium py-1 transition-colors cursor-pointer"
+                  className="text-xs text-slate-600 dark:text-slate-400 font-medium py-0.5 transition-colors cursor-pointer"
                 >
                   <span>Already have an account? </span>
                   <span className="font-bold text-[#1E4D2B] dark:text-green-400 hover:underline">Log In</span>
@@ -300,7 +379,7 @@ export const WelcomeScreen: React.FC = () => {
           ) : (
             /* Email & Password Form (Expanded) */
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 my-auto">
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <button
                   type="button"
                   onClick={() => setShowEmailForm(false)}
@@ -314,7 +393,7 @@ export const WelcomeScreen: React.FC = () => {
                 </span>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-2.5">
+              <form onSubmit={handleSubmit} className="space-y-2">
                 {authMode === 'register' && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -385,7 +464,7 @@ export const WelcomeScreen: React.FC = () => {
                   type="submit"
                   disabled={isSubmitting}
                   id="login-submit-button"
-                  className="w-full h-11 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all disabled:opacity-50 mt-1 cursor-pointer"
+                  className="w-full h-10.5 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all disabled:opacity-50 mt-1 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
