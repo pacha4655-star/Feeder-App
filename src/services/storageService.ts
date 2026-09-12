@@ -109,6 +109,7 @@ export const uploadMediaFile = async (
       bucket: bucketName,
     }),
     signal: abortController?.signal,
+    timeoutMs: 60000,
   });
 
   if (onProgress) onProgress(100);
@@ -117,7 +118,9 @@ export const uploadMediaFile = async (
     throw new Error('Failed to obtain public media URL from server.');
   }
 
-  return response.publicUrl;
+  // Append cache-busting timestamp for immediate UI refresh
+  const separator = response.publicUrl.includes('?') ? '&' : '?';
+  return `${response.publicUrl}${separator}t=${Date.now()}`;
 };
 
 /**

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, Plus, MapPin, User as UserIcon } from 'lucide-react';
+import { Home, Search, Plus, Users, User as UserIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const BottomNav: React.FC = () => {
@@ -7,18 +7,19 @@ export const BottomNav: React.FC = () => {
     currentTab,
     setCurrentTab,
     setShowCreateSheet,
+    setShowSearch,
     setActiveAnimalId,
     setActiveCommunityId,
     setActiveHelpId,
-    setViewingProfileUser
+    setViewingProfileUser,
+    user
   } = useApp();
 
-  const handleTabClick = (tab: 'home' | 'communities' | 'nearby' | 'help' | 'profile') => {
-    // Reset detail overlays when switching primary tabs
+  const handleTabClick = (tab: 'home' | 'communities' | 'profile') => {
     setActiveAnimalId(null);
     setActiveCommunityId(null);
     setActiveHelpId(null);
-    if (tab === 'profile' || tab === 'home') {
+    if (tab === 'profile' || tab === 'home' || tab === 'communities') {
       setViewingProfileUser(null);
     }
     setCurrentTab(tab);
@@ -26,97 +27,109 @@ export const BottomNav: React.FC = () => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 pb-safe transition-all shadow-lg shadow-slate-900/5 select-none">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 pb-safe transition-all shadow-lg shadow-slate-900/5 select-none">
       <div className="w-full max-w-lg mx-auto px-2 h-14 flex items-center justify-between relative">
-        {/* Home */}
+        {/* 1. Home */}
         <button
           onClick={() => handleTabClick('home')}
           id="nav-home"
           className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            currentTab === 'home' ? 'text-green-600' : 'text-slate-400 hover:text-slate-600'
+            currentTab === 'home'
+              ? 'text-green-700 dark:text-green-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           aria-label="Home"
         >
           <div className="relative">
             <Home className="w-5 h-5 stroke-[2.2]" />
             {currentTab === 'home' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-600 rounded-full" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-700 dark:bg-green-400 rounded-full" />
             )}
           </div>
-          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'home' ? 'text-green-600' : 'text-slate-500'}`}>
+          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'home' ? 'text-green-700 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
             Home
           </span>
         </button>
 
-        {/* Communities */}
+        {/* 2. Search */}
         <button
-          onClick={() => handleTabClick('communities')}
-          id="nav-communities"
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            currentTab === 'communities' ? 'text-green-600' : 'text-slate-400 hover:text-slate-600'
-          }`}
-          aria-label="Communities"
+          onClick={() => setShowSearch(true)}
+          id="nav-search"
+          className="flex flex-col items-center justify-center flex-1 py-1 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          aria-label="Search people and places"
         >
           <div className="relative">
-            <Users className="w-5 h-5 stroke-[2.2]" />
-            {currentTab === 'communities' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-600 rounded-full" />
-            )}
+            <Search className="w-5 h-5 stroke-[2.2]" />
           </div>
-          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'communities' ? 'text-green-600' : 'text-slate-500'}`}>
-            Communities
+          <span className="text-[10px] mt-0.5 font-bold text-slate-500 dark:text-slate-400">
+            Search
           </span>
         </button>
 
-        {/* Center Raised (+) Button */}
+        {/* 3. Center Raised Create (+) Button */}
         <div className="flex-1 flex justify-center -mt-5">
           <button
             onClick={() => setShowCreateSheet(true)}
             id="nav-create-button"
-            className="w-12 h-12 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center shadow-lg shadow-green-600/35 hover:scale-105 active:scale-95 transition-all duration-150 border-[3px] border-white focus:outline-none focus:ring-2 focus:ring-green-500/40"
-            aria-label="Create new post or action"
-            title="Create Post or Report Rescue"
+            className="w-12 h-12 rounded-full bg-gradient-to-tr from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white flex items-center justify-center shadow-lg shadow-green-700/35 hover:scale-105 active:scale-95 transition-all duration-150 border-[3px] border-white dark:border-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/40"
+            aria-label="Create post or action"
+            title="Create Post, Report Rescue, or Add Animal"
           >
-            <Plus className="w-6 h-6 stroke-[2.5]" />
+            <Plus className="w-6 h-6 stroke-[2.8]" />
           </button>
         </div>
 
-        {/* Nearby */}
+        {/* 4. Community */}
         <button
-          onClick={() => handleTabClick('nearby')}
-          id="nav-nearby"
+          onClick={() => handleTabClick('communities')}
+          id="nav-communities"
           className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            currentTab === 'nearby' ? 'text-green-600' : 'text-slate-400 hover:text-slate-600'
+            currentTab === 'communities'
+              ? 'text-green-700 dark:text-green-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
-          aria-label="Nearby Map"
+          aria-label="Community"
         >
           <div className="relative">
-            <MapPin className="w-5 h-5 stroke-[2.2]" />
-            {currentTab === 'nearby' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-600 rounded-full" />
+            <Users className="w-5 h-5 stroke-[2.2]" />
+            {currentTab === 'communities' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-700 dark:bg-green-400 rounded-full" />
             )}
           </div>
-          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'nearby' ? 'text-green-600' : 'text-slate-500'}`}>
-            Nearby
+          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'communities' ? 'text-green-700 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+            Community
           </span>
         </button>
 
-        {/* Profile */}
+        {/* 5. Profile */}
         <button
           onClick={() => handleTabClick('profile')}
           id="nav-profile"
           className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            currentTab === 'profile' ? 'text-green-600' : 'text-slate-400 hover:text-slate-600'
+            currentTab === 'profile'
+              ? 'text-green-700 dark:text-green-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           aria-label="Profile"
         >
           <div className="relative">
-            <UserIcon className="w-5 h-5 stroke-[2.2]" />
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className={`w-5 h-5 rounded-full object-cover border ${
+                  currentTab === 'profile' ? 'border-green-600 ring-1 ring-green-600' : 'border-slate-300 dark:border-slate-600'
+                }`}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <UserIcon className="w-5 h-5 stroke-[2.2]" />
+            )}
             {currentTab === 'profile' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-600 rounded-full" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-700 dark:bg-green-400 rounded-full" />
             )}
           </div>
-          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'profile' ? 'text-green-600' : 'text-slate-500'}`}>
+          <span className={`text-[10px] mt-0.5 font-bold ${currentTab === 'profile' ? 'text-green-700 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
             Profile
           </span>
         </button>

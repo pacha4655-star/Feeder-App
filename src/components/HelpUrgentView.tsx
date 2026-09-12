@@ -41,9 +41,9 @@ export const HelpUrgentView: React.FC = () => {
     const isAlreadyResponding = (activeRequest.responders || []).some(r => r.userId === user?.id);
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs overflow-hidden pb-24 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+      <div className="w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden font-sans">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center justify-between border-b border-[#E8EDE9]">
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800">
           <button
             onClick={() => setActiveHelpId(null)}
             className="p-1 text-gray-700 hover:text-black flex items-center gap-1.5 font-bold text-xs"
@@ -346,9 +346,9 @@ export const HelpUrgentView: React.FC = () => {
 
   // Primary Help / Urgent Feed
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs overflow-hidden pb-24 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden font-sans">
       {/* Top Header */}
-      <div className="sticky top-14 sm:top-16 z-20 bg-white/95 backdrop-blur-md px-4 sm:px-6 pt-4 pb-2 border-b border-slate-100">
+      <div className="sticky top-14 sm:top-16 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 pt-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#192A1D] tracking-tight">

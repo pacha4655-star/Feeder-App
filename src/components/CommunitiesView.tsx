@@ -36,9 +36,9 @@ export const CommunitiesView: React.FC = () => {
     const communityPosts = posts.filter(p => p.communityId === activeCommunity.id);
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs overflow-hidden pb-24 min-h-screen">
+      <div className="w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden font-sans">
         {/* Detail Top Header */}
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center justify-between border-b border-slate-100">
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800">
           <button
             onClick={() => setActiveCommunityId(null)}
             className="p-1 text-slate-700 hover:text-black flex items-center gap-1.5 font-bold text-xs"
@@ -152,7 +152,7 @@ export const CommunitiesView: React.FC = () => {
 
   // Primary Communities List Screen
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs overflow-hidden pb-24 min-h-screen font-sans">
+    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden font-sans">
       {/* High Density Communities Header */}
       <div className="p-4 sm:p-6 bg-gradient-to-r from-green-700 to-green-600 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">

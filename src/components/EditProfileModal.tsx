@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { X, Camera, MapPin, Check, Sparkles, User as UserIcon, Heart, Dog, Tag, Loader2, Upload } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Camera, MapPin, Check, Sparkles, User as UserIcon, Heart, Dog, Tag, Loader2, Upload, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 import { uploadMediaFile } from '../services/storageService';
+import { checkUsernameAvailability } from '../services/profileService';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -48,6 +49,104 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingPetPhoto, setIsUploadingPetPhoto] = useState(false);
 
+  // Username validation & availability
+  const [usernameStatus, setUsernameStatus] = useState<{
+    checking: boolean;
+    available: boolean;
+    message?: string;
+  }>({ checking: false, available: true });
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const petPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent background page scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  // Synchronize state whenever modal opens or user profile updates
+  useEffect(() => {
+    if (isOpen && user) {
+      setName(user.name || '');
+      setUsername(user.username || '');
+      setBio(user.bio || '');
+      setLocation(user.location || '');
+      setAvatar(user.avatar || '');
+      setRoles(user.roles || ['Feeder', 'Animal Lover']);
+      setInterests(user.interests || ['Dogs', 'Cats', 'Street Animals']);
+      setPetName(user.petName || '');
+      setPetSpecies(user.petSpecies || 'Dog');
+      setPetBreed(user.petBreed || '');
+      setPetAge(user.petAge || '');
+      setPetPhoto(user.petPhoto || '');
+      setUsernameStatus({ checking: false, available: true });
+    }
+  }, [isOpen, user]);
+
+  // Real-time username check with debounce
+  useEffect(() => {
+    const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
+    if (!cleanUsername) {
+      setUsernameStatus({ checking: false, available: true });
+      return;
+    }
+
+    if (cleanUsername === (user?.username || '').toLowerCase()) {
+      setUsernameStatus({ checking: false, available: true });
+      return;
+    }
+
+    if (cleanUsername.length < 3) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message: 'Must be at least 3 characters',
+      });
+      return;
+    }
+
+    if (!/^[a-z0-9._]+$/.test(cleanUsername)) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message: 'Only lowercase letters, numbers, dots & underscores',
+      });
+      return;
+    }
+
+    if (cleanUsername.startsWith('.') || cleanUsername.endsWith('.') || cleanUsername.includes('..')) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message: 'Cannot begin, end, or have consecutive dots',
+      });
+      return;
+    }
+
+    setUsernameStatus({ checking: true, available: false });
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailability(cleanUsername);
+        setUsernameStatus({
+          checking: false,
+          available: res.available,
+          message: res.available ? 'Username available!' : (res.reason || 'Username is already taken'),
+        });
+      } catch {
+        setUsernameStatus({ checking: false, available: true });
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [username, user?.username]);
+
   if (!isOpen) return null;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,12 +157,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     try {
       const downloadUrl = await uploadMediaFile(file, 'profiles');
       setAvatar(downloadUrl);
-      showToast('Avatar uploaded to Cloud Storage! 🐾', 'success');
+      showToast('Avatar uploaded! 🐾', 'success');
     } catch (err: any) {
       console.error('Avatar upload failed:', err);
       showToast(err.message || 'Failed to upload avatar', 'error');
     } finally {
       setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
     }
   };
 
@@ -75,12 +177,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     try {
       const downloadUrl = await uploadMediaFile(file, 'profiles');
       setPetPhoto(downloadUrl);
-      showToast('Pet photo uploaded to Cloud Storage! 🐶', 'success');
+      showToast('Pet photo uploaded! 🐶', 'success');
     } catch (err: any) {
       console.error('Pet photo upload failed:', err);
       showToast(err.message || 'Failed to upload pet photo', 'error');
     } finally {
       setIsUploadingPetPhoto(false);
+      if (petPhotoInputRef.current) {
+        petPhotoInputRef.current.value = '';
+      }
     }
   };
 
@@ -94,34 +199,36 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleAddInterest = (e: React.KeyboardEvent | React.MouseEvent) => {
-    if ('key' in e && e.key !== 'Enter') return;
-    e.preventDefault();
-    if (!interestInput.trim()) return;
-    if (!interests.includes(interestInput.trim())) {
-      setInterests([...interests, interestInput.trim()]);
-    }
-    setInterestInput('');
-  };
-
-  const handleRemoveInterest = (item: string) => {
-    setInterests(interests.filter(i => i !== item));
-  };
-
   const handleSave = async () => {
     if (!name.trim()) {
       showToast('Please enter your full name', 'error');
       return;
     }
 
+    const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
+    if (cleanUsername) {
+      if (cleanUsername.length < 3 || cleanUsername.length > 30) {
+        showToast('Username must be between 3 and 30 characters', 'error');
+        return;
+      }
+      if (!/^[a-z0-9._]+$/.test(cleanUsername)) {
+        showToast('Username can only contain letters, numbers, dots & underscores', 'error');
+        return;
+      }
+      if (!usernameStatus.available && cleanUsername !== (user?.username || '').toLowerCase()) {
+        showToast(usernameStatus.message || 'Username is not available. Please choose another.', 'error');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       await updateUserProfile({
         name: name.trim(),
-        username: username.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''),
+        username: cleanUsername,
         bio: bio.trim(),
         location: location.trim(),
-        avatar,
+        avatar: avatar.trim(),
         roles,
         interests,
         petName: petName.trim() || undefined,
@@ -131,8 +238,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         petPhoto: petPhoto || undefined
       });
       onClose();
-    } catch (err) {
-      // Error already toasted by context
+    } catch (err: any) {
+      // Error is already toasted by updateUserProfile rollback, keep modal open
+      console.error('[EditProfileModal] Save error:', err);
     } finally {
       setIsSaving(false);
     }
@@ -140,29 +248,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs font-sans animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm text-slate-900">Edit Profile & Animal Photos</span>
+            <span className="font-extrabold text-sm text-slate-900 dark:text-white">Edit Profile & Animal Photos</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Toggle */}
-        <div className="px-5 pt-3 pb-2 flex gap-2 border-b border-slate-100 bg-slate-50/50">
+        <div className="px-5 pt-3 pb-2 flex gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'profile'
                 ? 'bg-green-600 text-white shadow-2xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />
@@ -175,7 +283,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'pet'
                 ? 'bg-green-600 text-white shadow-2xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
             }`}
           >
             <Dog className="w-3.5 h-3.5" />
@@ -188,7 +296,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
           {activeTab === 'profile' ? (
             <>
               {/* Avatar Upload */}
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="relative">
                   <img
                     src={avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=feeder'}
@@ -204,11 +312,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-bold text-slate-800 mb-1">Caregiver Avatar</label>
+                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Caregiver Avatar</label>
                   <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors">
                     <Camera className="w-3.5 h-3.5" />
                     <span>{isUploadingAvatar ? 'Uploading...' : 'Upload from Device'}</span>
                     <input
+                      ref={avatarInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handleFileUpload}
@@ -222,33 +331,51 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               {/* Name & Username */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Your Name</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Your Name</label>
                   <input
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Username</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Username</label>
                   <div className="relative">
                     <span className="text-slate-400 font-bold absolute left-3 top-2 text-xs">@</span>
                     <input
                       type="text"
                       value={username}
-                      onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                      className="w-full pl-7 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                      onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                      className="w-full pl-7 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
+                      placeholder="username"
                     />
                   </div>
+                  {username && username !== user?.username && (
+                    <div className="mt-1 flex items-center gap-1 text-[11px]">
+                      {usernameStatus.checking ? (
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Checking availability...
+                        </span>
+                      ) : usernameStatus.available ? (
+                        <span className="text-green-600 font-semibold flex items-center gap-1">
+                          <Check className="w-3 h-3" /> {usernameStatus.message || 'Available!'}
+                        </span>
+                      ) : (
+                        <span className="text-red-500 font-semibold flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> {usernameStatus.message}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Neighborhood / City</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Neighborhood / City</label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -256,26 +383,26 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                     value={location}
                     onChange={e => setLocation(e.target.value)}
                     placeholder="e.g. Adyar, Chennai"
-                    className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                    className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                   />
                 </div>
               </div>
 
               {/* Bio */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">About / Bio</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">About / Bio</label>
                 <textarea
                   value={bio}
                   onChange={e => setBio(e.target.value)}
                   rows={3}
                   placeholder="Share your experience caring for community animals..."
-                  className="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white resize-none"
+                  className="w-full p-3 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white resize-none"
                 />
               </div>
 
               {/* Community Roles */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Your Roles</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Your Roles</label>
                 <div className="flex flex-wrap gap-1.5">
                   {AVAILABLE_ROLES.map(r => {
                     const isSelected = roles.includes(r);
@@ -287,7 +414,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                         className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
                           isSelected
                             ? 'bg-green-600 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                         }`}
                       >
                         {isSelected && '✓ '}
@@ -301,7 +428,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
           ) : (
             <>
               {/* Pet / Companion Dog Section */}
-              <div className="flex items-center gap-4 p-3 bg-amber-50/60 rounded-2xl border border-amber-200">
+              <div className="flex items-center gap-4 p-3 bg-amber-50/60 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900">
                 <div className="relative">
                   <img
                     src={petPhoto || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&auto=format&fit=crop&q=80'}
@@ -317,11 +444,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-bold text-amber-900 mb-1">Dog / Animal Companion Photo</label>
+                  <label className="block text-xs font-bold text-amber-900 dark:text-amber-300 mb-1">Dog / Animal Companion Photo</label>
                   <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors">
                     <Camera className="w-3.5 h-3.5" />
                     <span>{isUploadingPetPhoto ? 'Uploading...' : 'Upload Photo'}</span>
                     <input
+                      ref={petPhotoInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handlePetPhotoUpload}
@@ -335,35 +463,35 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               {/* Pet Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Dog / Animal Name</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Dog / Animal Name</label>
                   <input
                     type="text"
                     value={petName}
                     onChange={e => setPetName(e.target.value)}
                     placeholder="e.g. Bruno"
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Breed / Type</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Breed / Type</label>
                   <input
                     type="text"
                     value={petBreed}
                     onChange={e => setPetBreed(e.target.value)}
                     placeholder="e.g. Indie / Indian Pariah"
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Species</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Species</label>
                   <select
                     value={petSpecies}
                     onChange={e => setPetSpecies(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600"
+                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 dark:text-white"
                   >
                     <option value="Dog">Dog</option>
                     <option value="Cat">Cat</option>
@@ -373,13 +501,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Age</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Age</label>
                   <input
                     type="text"
                     value={petAge}
                     onChange={e => setPetAge(e.target.value)}
                     placeholder="e.g. 2 years"
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white"
+                    className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                   />
                 </div>
               </div>
@@ -388,24 +516,24 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-white text-xs font-bold text-slate-600 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={isSaving || isUploadingAvatar || isUploadingPetPhoto}
+            disabled={isSaving || isUploadingAvatar || isUploadingPetPhoto || (usernameStatus.checking || (!usernameStatus.available && username !== (user?.username || '')))}
             onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-green-700/20 transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-green-700/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {isSaving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Saving to Firestore...</span>
+                <span>Saving to Database...</span>
               </>
             ) : (
               <span>Save Changes</span>

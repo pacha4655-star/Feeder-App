@@ -12,11 +12,11 @@ export const mapProfileToUser = (row: any): User => {
   return {
     id: uid,
     name: row.name || 'Feeder Caregiver',
-    username: (row.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
+    username: row.username || (row.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
     email: row.email || undefined,
     phone: undefined,
     avatar: row.photo_url || defaultAvatar,
-    bio: row.bio || 'Compassionate animal lover, street feeder & pet protector.',
+    bio: row.bio !== undefined && row.bio !== null ? row.bio : 'Compassionate animal lover, street feeder & pet protector.',
     location: row.location || '',
     roles: ['Feeder', 'Animal Lover'],
     interests: ['Street Animals', 'Community Care', 'Adoption'],
@@ -32,6 +32,24 @@ export const mapProfileToUser = (row: any): User => {
     rescuesSupportedCount: 0,
     registeredAnimalsCount: 0,
   };
+};
+
+/**
+ * Checks if a username is available and valid format via backend API
+ */
+export const checkUsernameAvailability = async (
+  username: string
+): Promise<{ available: boolean; reason?: string }> => {
+  try {
+    const targetUrl = resolveApiUrl(`/api/profile/check-username?username=${encodeURIComponent(username)}`);
+    const res = await fetch(targetUrl);
+    if (!res.ok) {
+      return { available: true };
+    }
+    return await res.json();
+  } catch {
+    return { available: true };
+  }
 };
 
 /**
@@ -109,7 +127,8 @@ export const syncUserProfileToSupabase = async (user: User): Promise<void> => {
       body: JSON.stringify(user),
     });
   } catch (err: any) {
-    console.warn('[Profile Service] Backend profile sync notice:', err.message || err);
+    console.warn('[Profile Service] Backend profile sync error:', err.message || err);
+    throw err;
   }
 };
 

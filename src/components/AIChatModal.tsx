@@ -163,7 +163,7 @@ export const AIChatModal: React.FC = () => {
     setShowAIChat(false);
     if (action.type === 'open_help') {
       setCurrentTab('help');
-    } else if (action.type === 'open_map') {
+    } else if (action.type === 'open_map' || action.type === 'open_vets' || action.type === 'open_clinics') {
       setCurrentTab('nearby');
     } else if (action.type === 'open_adoptions') {
       setShowAdoptionFosterHub(true);
@@ -234,7 +234,7 @@ export const AIChatModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-xl lg:max-w-2xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col h-[90vh] sm:h-[650px] animate-in slide-in-from-bottom-6 duration-200"
+        className="w-full max-w-xl lg:max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col h-[90vh] sm:h-[650px] animate-in slide-in-from-bottom-6 duration-200"
         id="ai-chat-modal-container"
       >
         {/* Header */}
@@ -383,7 +383,7 @@ export const AIChatModal: React.FC = () => {
         )}
 
         {/* Input Bar */}
-        <div className="p-3 bg-white border-t border-slate-100">
+        <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
           <form
             onSubmit={e => {
               e.preventDefault();
@@ -398,13 +398,13 @@ export const AIChatModal: React.FC = () => {
               onChange={e => setInputMessage(e.target.value)}
               placeholder={`Ask Pawsy about animal care in ${selectedLocation}...`}
               disabled={isLoading}
-              className="flex-1 py-2 px-3.5 text-xs sm:text-[13px] bg-slate-100/90 border border-slate-200 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-green-600 focus:bg-white text-slate-800 placeholder-slate-400 transition-all disabled:opacity-50"
+              className="flex-1 py-2 px-3.5 text-xs sm:text-[13px] bg-slate-100/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-green-600 focus:bg-white dark:focus:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 transition-all disabled:opacity-50"
               id="ai-chat-input"
             />
             <button
               type="submit"
               disabled={!inputMessage.trim() || isLoading}
-              className="w-9 h-9 rounded-2xl bg-green-700 hover:bg-green-800 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs active:scale-95 flex-shrink-0"
+              className="w-9 h-9 rounded-2xl bg-green-700 hover:bg-green-800 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs active:scale-95 flex-shrink-0 cursor-pointer"
               id="ai-chat-send-btn"
             >
               <Send className="w-4 h-4" />

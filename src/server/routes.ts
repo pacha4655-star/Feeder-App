@@ -280,57 +280,187 @@ backendRouter.post('/media/delete', requireFirebaseAuth, async (req: Authenticat
 });
 
 // =============================================================================
-// 2. PROFILE SYNC (POST /api/profile/sync)
+// 2a. CHECK USERNAME AVAILABILITY (GET /api/profile/check-username)
+// =============================================================================
+backendRouter.get('/profile/check-username', async (req: Request, res: Response) => {
+  try {
+    const rawUsername = (req.query.username as string) || '';
+    const cleanUsername = rawUsername.trim().toLowerCase().replace(/^@/, '');
+
+    // Format validation: 3-30 chars, alphanumeric + underscores + periods
+    if (!cleanUsername || cleanUsername.length < 3) {
+      return res.json({ available: false, reason: 'Username must be at least 3 characters long.' });
+    }
+    if (cleanUsername.length > 30) {
+      return res.json({ available: false, reason: 'Username cannot exceed 30 characters.' });
+    }
+    if (!/^[a-z0-9._]+$/.test(cleanUsername)) {
+      return res.json({ available: false, reason: 'Username can only contain lowercase letters, numbers, underscores, and dots.' });
+    }
+    if (cleanUsername.startsWith('.') || cleanUsername.endsWith('.') || cleanUsername.includes('..')) {
+      return res.json({ available: false, reason: 'Username cannot begin, end, or contain consecutive dots.' });
+    }
+
+    // Check availability in Supabase profiles table
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('firebase_uid, username')
+        .ilike('username', cleanUsername);
+
+      if (error) {
+        // If column username doesn't exist yet, don't block user
+        if (error.code === '42703') {
+          return res.json({ available: true, username: cleanUsername });
+        }
+        console.warn('[Check Username] Query notice:', error.message);
+        return res.json({ available: true, username: cleanUsername });
+      }
+
+      if (data && data.length > 0) {
+        // If caller is authenticated and matches this UID, it is their own username (available)
+        const authHeader = req.headers.authorization;
+        let callerUid: string | null = null;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            const decoded = await verifyFirebaseIdToken(authHeader.split('Bearer ')[1].trim());
+            callerUid = decoded.uid;
+          } catch {}
+        }
+
+        const isSelf = callerUid && data.some(p => p.firebase_uid === callerUid);
+        if (isSelf) {
+          return res.json({ available: true, username: cleanUsername });
+        }
+
+        return res.json({ available: false, reason: 'Username is already taken by another user.' });
+      }
+
+      return res.json({ available: true, username: cleanUsername });
+    } catch (dbErr: any) {
+      return res.json({ available: true, username: cleanUsername });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Username check failed.' });
+  }
+});
+
+// =============================================================================
+// 2b. PROFILE SYNC (POST /api/profile/sync)
 // =============================================================================
 backendRouter.post('/profile/sync', requireFirebaseAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const verifiedUid = req.user!.uid;
     const user = req.body || {};
 
-    const avatarUrl = user.avatar || user.photo_url || req.user!.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(verifiedUid)}`;
-    const name = user.name || req.user!.name || 'Feeder Caregiver';
-    const email = user.email || req.user!.email || null;
-    const bio = user.bio !== undefined ? user.bio : 'Compassionate animal lover, street feeder & pet protector.';
-    const location = user.location !== undefined ? user.location : '';
+    const avatarUrl = (user.avatar || user.photo_url || '').trim() || req.user!.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(verifiedUid)}`;
+    const name = (user.name || '').trim() || req.user!.name || 'Feeder Caregiver';
+    const email = (user.email || '').trim() || req.user!.email || null;
+    const bio = user.bio !== undefined ? String(user.bio).trim() : 'Compassionate animal lover, street feeder & pet protector.';
+    const location = user.location !== undefined ? String(user.location).trim() : '';
 
-    // Check if profile already exists to preserve original joined/created timestamp
+    // Clean and validate username if provided
+    let rawUsername = user.username ? String(user.username).trim().toLowerCase().replace(/^@/, '') : '';
+    if (rawUsername && !/^[a-z0-9._]{3,30}$/.test(rawUsername)) {
+      rawUsername = rawUsername.replace(/[^a-z0-9._]/g, '').slice(0, 30);
+    }
+    const finalUsername = rawUsername || null;
+
+    // Check if profile already exists
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('firebase_uid', verifiedUid)
       .maybeSingle();
 
+    // Check username uniqueness against other users if provided
+    if (finalUsername) {
+      try {
+        const { data: existingUsersWithUsername } = await supabaseAdmin
+          .from('profiles')
+          .select('firebase_uid')
+          .ilike('username', finalUsername);
+
+        if (existingUsersWithUsername && existingUsersWithUsername.length > 0) {
+          const conflict = existingUsersWithUsername.find(p => p.firebase_uid !== verifiedUid);
+          if (conflict) {
+            return res.status(409).json({
+              error: 'Username is already taken by another user. Please choose another.',
+              code: 'USERNAME_TAKEN',
+            });
+          }
+        }
+      } catch (checkErr: any) {
+        // If column username doesn't exist yet, proceed gracefully
+      }
+    }
+
     let profileResult;
     if (existingProfile) {
-      const { data, error } = await supabaseAdmin
+      const updatePayload: Record<string, any> = {
+        name: name || existingProfile.name,
+        email: email || existingProfile.email,
+        photo_url: (user.avatar || user.photo_url || '').trim() || existingProfile.photo_url || avatarUrl,
+        bio: user.bio !== undefined ? bio : existingProfile.bio,
+        location: user.location !== undefined ? location : existingProfile.location,
+      };
+      if (finalUsername) {
+        updatePayload.username = finalUsername;
+      }
+
+      let { data, error } = await supabaseAdmin
         .from('profiles')
-        .update({
-          name: name || existingProfile.name,
-          email: email || existingProfile.email,
-          photo_url: user.avatar || user.photo_url || existingProfile.photo_url || avatarUrl,
-          bio: bio || existingProfile.bio,
-          location: location || existingProfile.location,
-        })
+        .update(updatePayload)
         .eq('firebase_uid', verifiedUid)
         .select('*')
         .single();
 
+      // Graceful fallback if username column doesn't exist in DB schema yet
+      if (error && error.code === '42703' && updatePayload.username) {
+        delete updatePayload.username;
+        const retry = await supabaseAdmin
+          .from('profiles')
+          .update(updatePayload)
+          .eq('firebase_uid', verifiedUid)
+          .select('*')
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (error) throw error;
       profileResult = data;
     } else {
-      const { data, error } = await supabaseAdmin
+      const insertPayload: Record<string, any> = {
+        firebase_uid: verifiedUid,
+        name,
+        email,
+        photo_url: avatarUrl,
+        bio,
+        location,
+        created_at: new Date().toISOString(),
+      };
+      if (finalUsername) {
+        insertPayload.username = finalUsername;
+      }
+
+      let { data, error } = await supabaseAdmin
         .from('profiles')
-        .insert({
-          firebase_uid: verifiedUid,
-          name,
-          email,
-          photo_url: avatarUrl,
-          bio,
-          location,
-          created_at: new Date().toISOString(),
-        })
+        .insert(insertPayload)
         .select('*')
         .single();
+
+      // Graceful fallback if username column doesn't exist in DB schema yet
+      if (error && error.code === '42703' && insertPayload.username) {
+        delete insertPayload.username;
+        const retry = await supabaseAdmin
+          .from('profiles')
+          .insert(insertPayload)
+          .select('*')
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
       profileResult = data;
@@ -366,7 +496,173 @@ backendRouter.get('/profile/:uid', async (req: Request, res: Response) => {
 });
 
 // =============================================================================
-// 3b. USER DISCOVERY / PEOPLE SEARCH (GET /api/users/search)
+// 3b. FOLLOW / UNFOLLOW USER (POST /api/users/:targetUserId/follow)
+// =============================================================================
+backendRouter.post('/users/:targetUserId/follow', requireFirebaseAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const followerUid = req.user!.uid;
+    const targetUid = req.params.targetUserId;
+
+    if (!targetUid) {
+      return res.status(400).json({ error: 'Target user ID is required.' });
+    }
+
+    if (followerUid === targetUid) {
+      return res.status(400).json({ error: 'You cannot follow yourself.' });
+    }
+
+    // Check if relationship already exists
+    const { data: existingFollow, error: fetchErr } = await supabaseAdmin
+      .from('followers')
+      .select('id')
+      .eq('follower_uid', followerUid)
+      .eq('following_uid', targetUid)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.error('[Follow Route] Error checking follow relation:', fetchErr);
+      return res.status(500).json({ error: fetchErr.message });
+    }
+
+    let isFollowing = false;
+    if (existingFollow) {
+      // Unfollow
+      const { error: delErr } = await supabaseAdmin
+        .from('followers')
+        .delete()
+        .eq('id', existingFollow.id);
+
+      if (delErr) throw delErr;
+      isFollowing = false;
+    } else {
+      // Follow
+      const { error: insErr } = await supabaseAdmin
+        .from('followers')
+        .insert({
+          follower_uid: followerUid,
+          following_uid: targetUid,
+          created_at: new Date().toISOString(),
+        });
+
+      if (insErr) throw insErr;
+      isFollowing = true;
+    }
+
+    // Get exact follower count for target user
+    const { count: followersCount } = await supabaseAdmin
+      .from('followers')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_uid', targetUid);
+
+    // Get exact following count for current user
+    const { count: followingCount } = await supabaseAdmin
+      .from('followers')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_uid', followerUid);
+
+    return res.json({
+      success: true,
+      following: isFollowing,
+      isFollowing,
+      targetFollowersCount: followersCount ?? 0,
+      currentFollowingCount: followingCount ?? 0,
+    });
+  } catch (err: any) {
+    console.error('[Follow Route] Error:', err);
+    return res.status(500).json({ error: err.message || 'Follow action failed.' });
+  }
+});
+
+// =============================================================================
+// 3c. GET FOLLOWERS (GET /api/users/:targetUserId/followers)
+// =============================================================================
+backendRouter.get('/users/:targetUserId/followers', async (req: Request, res: Response) => {
+  try {
+    const { targetUserId } = req.params;
+    const { data: followRows, error: followErr } = await supabaseAdmin
+      .from('followers')
+      .select('follower_uid')
+      .eq('following_uid', targetUserId);
+
+    if (followErr) throw followErr;
+
+    const followerUids = (followRows || []).map(r => r.follower_uid).filter(Boolean);
+    if (followerUids.length === 0) {
+      return res.json({ success: true, followers: [] });
+    }
+
+    const { data: profiles, error: profErr } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .in('firebase_uid', followerUids);
+
+    if (profErr) throw profErr;
+
+    const followers = (profiles || []).map(p => {
+      const uid = p.firebase_uid || p.id || '';
+      return {
+        id: uid,
+        firebase_uid: uid,
+        name: p.name || 'Feeder Caregiver',
+        username: p.username || (p.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
+        avatar: p.photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`,
+        bio: p.bio || '',
+        location: p.location || '',
+      };
+    });
+
+    return res.json({ success: true, followers });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch followers.' });
+  }
+});
+
+// =============================================================================
+// 3d. GET FOLLOWING (GET /api/users/:targetUserId/following)
+// =============================================================================
+backendRouter.get('/users/:targetUserId/following', async (req: Request, res: Response) => {
+  try {
+    const { targetUserId } = req.params;
+    const { data: followRows, error: followErr } = await supabaseAdmin
+      .from('followers')
+      .select('following_uid')
+      .eq('follower_uid', targetUserId);
+
+    if (followErr) throw followErr;
+
+    const followingUids = (followRows || []).map(r => r.following_uid).filter(Boolean);
+    if (followingUids.length === 0) {
+      return res.json({ success: true, following: [] });
+    }
+
+    const { data: profiles, error: profErr } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .in('firebase_uid', followingUids);
+
+    if (profErr) throw profErr;
+
+    const following = (profiles || []).map(p => {
+      const uid = p.firebase_uid || p.id || '';
+      return {
+        id: uid,
+        firebase_uid: uid,
+        name: p.name || 'Feeder Caregiver',
+        username: p.username || (p.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
+        avatar: p.photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`,
+        bio: p.bio || '',
+        location: p.location || '',
+      };
+    });
+
+    return res.json({ success: true, following });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch following.' });
+  }
+});
+
+// =============================================================================
+// 3e. USER DISCOVERY / PEOPLE SEARCH (GET /api/users/search)
 // =============================================================================
 backendRouter.get('/users/search', async (req: Request, res: Response) => {
   try {
@@ -377,35 +673,47 @@ backendRouter.get('/users/search', async (req: Request, res: Response) => {
       return res.json({ success: true, users: [] });
     }
 
-    // Sanitize query to prevent PostgREST formatting/syntax errors
-    // (strip commas, parentheses, backslashes, percent signs that could alter PostgREST filter clauses)
-    const sanitized = cleanQuery.replace(/[%_,()\\.]/g, ' ').trim();
+    // Escape characters that break PostgREST clauses while preserving spaces, letters, numbers, and Unicode
+    const sanitized = cleanQuery.replace(/[%_,()\\:*]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!sanitized) {
       return res.json({ success: true, users: [] });
     }
 
-    // Direct PostgREST search on public profiles table
-    // Strictly public fields only: NO EMAIL, NO TOKENS, NO PRIVATE CREDENTIALS
-    const { data: directProfiles, error } = await supabaseAdmin
-      .from('profiles')
-      .select('id, firebase_uid, name, photo_url, bio, location, created_at')
-      .or(`name.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`)
-      .limit(20);
+    let profiles: any[] = [];
+    try {
+      // First try searching name, username, and bio
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .or(`name.ilike.%${sanitized}%,username.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`)
+        .limit(25);
 
-    if (error) {
-      console.warn('[User Search] Supabase query notice:', error.message);
-      return res.status(500).json({ error: error.message, users: [] });
+      if (error) {
+        // Fallback if username column does not exist yet (code 42703)
+        if (error.code === '42703') {
+          const fallback = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .or(`name.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`)
+            .limit(25);
+          profiles = fallback.data || [];
+        } else {
+          console.warn('[User Search] Supabase query notice:', error.message);
+          profiles = [];
+        }
+      } else {
+        profiles = data || [];
+      }
+    } catch (searchErr) {
+      console.warn('[User Search] Search error:', searchErr);
     }
 
-    let profiles = directProfiles || [];
-
-    // Fallback: If direct query returned 0 matches and query is a continuous username (e.g. "pachamuthu"),
-    // check if any profile names match when ignoring spaces or special characters
+    // Fallback: If 0 matches and continuous query length >= 3, check prefix match on name
     if (profiles.length === 0 && sanitized.length >= 3) {
       const prefix = sanitized.slice(0, 4);
       const { data: prefixProfiles } = await supabaseAdmin
         .from('profiles')
-        .select('id, firebase_uid, name, photo_url, bio, location, created_at')
+        .select('*')
         .ilike('name', `%${prefix}%`)
         .limit(20);
 
@@ -413,35 +721,49 @@ backendRouter.get('/users/search', async (req: Request, res: Response) => {
         const queryNormalized = sanitized.toLowerCase();
         profiles = prefixProfiles.filter(p => {
           const normName = (p.name || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
-          return normName.includes(queryNormalized);
+          const normUser = (p.username || '').toLowerCase();
+          return normName.includes(queryNormalized) || normUser.includes(queryNormalized);
         });
       }
     }
 
-    const users = profiles.map(p => {
-      const uid = p.firebase_uid || p.id || '';
-      const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid || 'feeder')}`;
-      return {
-        id: uid,
-        firebase_uid: uid,
-        name: p.name || 'Feeder Caregiver',
-        username: (p.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
-        avatar: p.photo_url || defaultAvatar,
-        bio: p.bio || '',
-        location: p.location || '',
-        roles: ['Feeder', 'Animal Lover'],
-        interests: ['Community Care'],
-        postsCount: 0,
-        followersCount: 0,
-        followingCount: 0,
-        followerIds: [],
-        followingIds: [],
-        joinedDate: p.created_at
-          ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-          : 'Joined recently',
-        isVerified: true,
-      };
-    });
+    // Fetch follow stats for matched profiles
+    const users = await Promise.all(
+      profiles.map(async p => {
+        const uid = p.firebase_uid || p.id || '';
+        const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid || 'feeder')}`;
+
+        // Get follower and following IDs
+        const [followersRes, followingRes] = await Promise.all([
+          supabaseAdmin.from('followers').select('follower_uid').eq('following_uid', uid),
+          supabaseAdmin.from('followers').select('following_uid').eq('follower_uid', uid),
+        ]);
+
+        const followerIds = (followersRes.data || []).map(r => r.follower_uid);
+        const followingIds = (followingRes.data || []).map(r => r.following_uid);
+
+        return {
+          id: uid,
+          firebase_uid: uid,
+          name: p.name || 'Feeder Caregiver',
+          username: p.username || (p.name || 'feeder').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'feeder',
+          avatar: p.photo_url || defaultAvatar,
+          bio: p.bio || '',
+          location: p.location || '',
+          roles: ['Feeder', 'Animal Lover'],
+          interests: ['Community Care'],
+          postsCount: 0,
+          followersCount: followerIds.length,
+          followingCount: followingIds.length,
+          followerIds,
+          followingIds,
+          joinedDate: p.created_at
+            ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : 'Joined recently',
+          isVerified: true,
+        };
+      })
+    );
 
     return res.json({ success: true, users });
   } catch (err: any) {

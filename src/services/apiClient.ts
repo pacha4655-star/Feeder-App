@@ -7,7 +7,7 @@ import { resolveApiUrl, isNativeApp, getApiBaseUrl } from '../utils/apiConfig';
  */
 export async function authenticatedFetch<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { timeoutMs?: number } = {}
 ): Promise<T> {
   const token = await getFirebaseIdToken();
   if (!token) {
@@ -28,14 +28,16 @@ export async function authenticatedFetch<T = any>(
     ...(options.headers as Record<string, string>),
   };
 
+  const timeoutDuration = options.timeoutMs || 15000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
   try {
+    const { timeoutMs: _t, ...fetchOptions } = options;
     const response = await fetch(targetUrl, {
-      ...options,
+      ...fetchOptions,
       headers,
-      signal: options.signal || controller.signal,
+      signal: fetchOptions.signal || controller.signal,
     });
     clearTimeout(timeoutId);
 
@@ -54,8 +56,9 @@ export async function authenticatedFetch<T = any>(
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error(`Request to '${endpoint}' timed out after 10 seconds.`);
+      throw new Error(`Request to '${endpoint}' timed out after ${Math.round(timeoutDuration / 1000)} seconds.`);
     }
     throw err;
   }
 }
+

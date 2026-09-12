@@ -20,6 +20,7 @@ import { LiveOpenStreetMap, MapMarkerItem } from './LiveOpenStreetMap';
 import { RealPetPlace } from '../server/placesService';
 import { uploadMediaFile } from '../services/storageService';
 import { authenticatedFetch } from '../services/apiClient';
+import { api } from '../services/api';
 import { ResponderDashboardModal } from './ResponderDashboardModal';
 
 interface PetEmergencyModalProps {
@@ -116,17 +117,25 @@ export const PetEmergencyModal: React.FC<PetEmergencyModalProps> = ({
     const fetchNearest = async () => {
       setIsLoadingVet(true);
       try {
-        const res = await fetch(`/api/location/nearby-places?lat=${coords.lat}&lng=${coords.lng}&radiusKm=25&category=hospital`);
-        if (res.ok && isMounted) {
-          const data = await res.json();
+        const data = await api.getNearbyPlaces({
+          lat: coords.lat,
+          lng: coords.lng,
+          radiusKm: 25,
+          category: 'hospital',
+        });
+        if (isMounted) {
           const places: RealPetPlace[] = data.places || [];
           if (places.length > 0) {
             setNearestVet(places[0]);
           } else {
             // If no hospital in 25km, search clinics
-            const fallbackRes = await fetch(`/api/location/nearby-places?lat=${coords.lat}&lng=${coords.lng}&radiusKm=35&category=clinic`);
-            if (fallbackRes.ok && isMounted) {
-              const fallbackData = await fallbackRes.json();
+            const fallbackData = await api.getNearbyPlaces({
+              lat: coords.lat,
+              lng: coords.lng,
+              radiusKm: 35,
+              category: 'clinic',
+            });
+            if (isMounted) {
               const fallbackPlaces: RealPetPlace[] = fallbackData.places || [];
               if (fallbackPlaces.length > 0) {
                 setNearestVet(fallbackPlaces[0]);

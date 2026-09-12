@@ -1,4 +1,5 @@
 import { Animal, Community, HelpRequest, Post, User, AdoptionListing, FosterRequest, FeedingPoint, NotificationItem, NearbyMarker, VeterinaryHospital } from '../types';
+import { RealPetPlace } from '../server/placesService';
 import { resolveApiUrl } from '../utils/apiConfig';
 
 async function fetchJson<T>(
@@ -48,6 +49,22 @@ export const api = {
 
   async geocode(query: string): Promise<{ results: { name: string; displayName: string; lat: number; lng: number }[] }> {
     return fetchJson(`/api/location/geocode?q=${encodeURIComponent(query)}`);
+  },
+
+  // Real Nearby Pet & Animal Care Facilities (OpenStreetMap Overpass)
+  async getNearbyPlaces(params: {
+    lat: number;
+    lng: number;
+    radiusKm?: number;
+    category?: string;
+  }): Promise<{ success: boolean; places: RealPetPlace[]; count: number; userLocation: { lat: number; lng: number }; radiusKm: number }> {
+    const query = new URLSearchParams();
+    query.append('lat', params.lat.toString());
+    query.append('lng', params.lng.toString());
+    if (params.radiusKm !== undefined) query.append('radiusKm', params.radiusKm.toString());
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+
+    return fetchJson(`/api/location/nearby-places?${query.toString()}`, { timeoutMs: 22000 });
   },
 
   // Live & Emergency Veterinary Hospitals Directory

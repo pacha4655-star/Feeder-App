@@ -68,19 +68,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header bar */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
             <span>Profile</span>
             <span className="text-slate-400">•</span>
-            <span className="text-slate-500 font-normal">@{displayUser.username || displayUser.name.toLowerCase().replace(/\s+/g, '')}</span>
+            <span className="text-slate-500 dark:text-slate-400 font-normal">@{displayUser.username || displayUser.name.toLowerCase().replace(/\s+/g, '')}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -99,17 +99,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
               />
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                     {displayUser.name}
                   </h3>
                   {displayUser.isVerified && (
                     <ShieldCheck className="w-4 h-4 text-green-600" title="Verified Feeder / Rescuer" />
                   )}
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   @{displayUser.username || 'animal_caregiver'}
                 </p>
-                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-0.5">
                     <MapPin className="w-3 h-3 text-slate-400" />
                     {displayUser.location || 'Neighborhood Feeder'}
@@ -127,9 +127,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
             {!isSelf && (
               <button
                 onClick={handleFollowClick}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
                   isFollowing
-                    ? 'bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-600 border border-slate-200'
+                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-red-50 hover:text-red-600 border border-slate-200 dark:border-slate-700'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
@@ -150,23 +150,23 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
 
           {/* Bio */}
           {displayUser.bio && (
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
               {displayUser.bio}
             </p>
           )}
 
           {/* Real Follower & Following Stats */}
-          <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-100 text-center">
+          <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-100 dark:border-slate-800 text-center">
             <div>
-              <div className="text-sm font-black text-slate-900">{userPosts.length}</div>
+              <div className="text-sm font-black text-slate-900 dark:text-white">{userPosts.length}</div>
               <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Posts</div>
             </div>
             <div>
-              <div className="text-sm font-black text-slate-900">{followerCount}</div>
+              <div className="text-sm font-black text-slate-900 dark:text-white">{followerCount}</div>
               <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Followers</div>
             </div>
             <div>
-              <div className="text-sm font-black text-slate-900">{followingCount}</div>
+              <div className="text-sm font-black text-slate-900 dark:text-white">{followingCount}</div>
               <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Following</div>
             </div>
           </div>
@@ -174,12 +174,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
           {/* Roles & Tags */}
           {displayUser.roles && displayUser.roles.length > 0 && (
             <div>
-              <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Roles</h4>
+              <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Roles</h4>
               <div className="flex flex-wrap gap-1.5">
                 {displayUser.roles.map(r => (
                   <span
                     key={r}
-                    className="px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-semibold border border-green-200"
+                    className="px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 text-xs font-semibold border border-green-200 dark:border-green-800/60"
                   >
                     🐾 {r}
                   </span>
@@ -190,7 +190,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
 
           {/* User's Real Posts */}
           <div className="pt-2">
-            <h4 className="text-xs font-bold text-slate-800 mb-2 flex items-center justify-between">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center justify-between">
               <span>Recent Activity ({userPosts.length})</span>
               <span className="text-[10px] text-slate-400 font-normal">Real database posts</span>
             </h4>
@@ -198,8 +198,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
             {userPosts.length > 0 ? (
               <div className="space-y-2.5">
                 {userPosts.map((post, idx) => (
-                  <div key={post.id ? `ud_post_${post.id}` : `ud_post_${idx}`} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <p className="text-xs text-slate-800 leading-relaxed line-clamp-3">
+                  <div key={post.id ? `ud_post_${post.id}` : `ud_post_${idx}`} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 space-y-2">
+                    <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed line-clamp-3">
                       {post.content}
                     </p>
                     {post.media && post.media.length > 0 && (
@@ -207,7 +207,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
                         <img src={post.media[0]} alt="Post media" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                       <span className="text-[10px] text-slate-400">{post.createdAt}</span>
                       <div className="flex items-center gap-3">
                         <button
@@ -229,8 +229,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user: targetUs
                 ))}
               </div>
             ) : (
-              <div className="py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <p className="text-xs text-slate-500">No posts published yet by {displayUser.name}.</p>
+              <div className="py-6 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400">No posts published yet by {displayUser.name}.</p>
               </div>
             )}
           </div>

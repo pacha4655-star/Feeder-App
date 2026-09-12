@@ -7,28 +7,26 @@ import {
   Search,
   ChevronRight,
   X,
-  ExternalLink,
   Loader2,
   AlertTriangle,
   ShieldAlert,
-  Store,
-  Building2,
-  Stethoscope,
   RefreshCw,
   Clock,
   Globe,
-  Share2,
   Copy,
   Check,
-  Heart,
-  Home
+  List,
+  Map as MapIcon,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useLiveGeolocation } from '../hooks/useLiveGeolocation';
 import { LiveOpenStreetMap, MapMarkerItem } from './LiveOpenStreetMap';
 import { PetEmergencyModal } from './PetEmergencyModal';
-import { RealPetPlace, RealPetPlaceType } from '../server/placesService';
+import { RealPetPlace } from '../server/placesService';
 import { api } from '../services/api';
+
+type FilterCategory = 'all' | 'veterinary' | 'pet_shop' | 'shelter' | 'grooming';
 
 export const NearbyMapView: React.FC = () => {
   const {
@@ -49,7 +47,6 @@ export const NearbyMapView: React.FC = () => {
     errorMessage: gpsError,
     lastUpdated,
     startLiveTracking,
-    stopLiveTracking,
     requestCurrentPosition,
   } = useLiveGeolocation(true);
 
@@ -61,10 +58,12 @@ export const NearbyMapView: React.FC = () => {
   const activeCoords = manualCoords || gpsCoords || contextCoords;
 
   // Category filter state
-  type FilterCategory = 'all' | 'veterinary' | 'emergency_vet' | 'pet_shop' | 'shelter' | 'rescue';
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('all');
 
-  // Distance unit: km or mi (detects locale preference, user can toggle)
+  // Mobile view toggle between Map and List
+  const [mobileViewMode, setMobileViewMode] = useState<'map' | 'list'>('map');
+
+  // Distance unit: km or mi
   const [distanceUnit, setDistanceUnit] = useState<'km' | 'mi'>(() => {
     if (typeof navigator !== 'undefined' && navigator.language) {
       const lang = navigator.language.toLowerCase();
@@ -80,7 +79,7 @@ export const NearbyMapView: React.FC = () => {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-  const [isLiveWatching, setIsLiveWatching] = useState(true);
+  const [sortBy, setSortBy] = useState<'distance' | 'name'>('distance');
 
   // Global search input & suggestions state
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +100,7 @@ export const NearbyMapView: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search for any city/location in the world
+  // Debounced geocoding search for any city/location in the world
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -116,7 +115,7 @@ export const NearbyMapView: React.FC = () => {
         setSearchResults(res.results || []);
         setShowSearchDropdown(true);
       } catch (err) {
-        console.warn('Geocoding error:', err);
+        console.warn('[Nearby Map] Geocoding error:', err);
       } finally {
         setIsSearchingLocation(false);
       }
@@ -127,23 +126,29 @@ export const NearbyMapView: React.FC = () => {
 
   // Handle selecting a global location from search
   const handleSelectSearchResult = (item: { name: string; displayName: string; lat: number; lng: number }) => {
+    // 1. Clear old places immediately to avoid mixing
+    setRealPlaces([]);
+    setSelectedPlaceId(null);
+    setPlacesError(null);
+
+    // 2. Set new coords
     setManualCoords({ lat: item.lat, lng: item.lng });
     setManualAddress(item.name);
     setSelectedLocation(item.name);
     setUserCustomLocation(item.name, { lat: item.lat, lng: item.lng });
     setSearchQuery('');
     setShowSearchDropdown(false);
-    setSelectedPlaceId(null);
   };
 
   // Reset to device GPS
   const handleResetToDeviceGps = () => {
+    setRealPlaces([]);
+    setSelectedPlaceId(null);
     setManualCoords(null);
     setManualAddress(null);
-    setSelectedPlaceId(null);
+    setPlacesError(null);
     requestCurrentPosition();
     startLiveTracking();
-    setIsLiveWatching(true);
   };
 
   // Fetch real nearby places from backend OpenStreetMap Overpass service
@@ -154,19 +159,21 @@ export const NearbyMapView: React.FC = () => {
     setPlacesError(null);
     try {
       const radius = nearbyRadiusKm === 999 ? 25 : nearbyRadiusKm;
-      const res = await fetch(
-        `/api/location/nearby-places?lat=${activeCoords.lat}&lng=${activeCoords.lng}&radiusKm=${radius}&category=${activeCategory}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setRealPlaces(data.places || []);
+      const data = await api.getNearbyPlaces({
+        lat: activeCoords.lat,
+        lng: activeCoords.lng,
+        radiusKm: radius,
+        category: activeCategory,
+      });
+
+      if (data && Array.isArray(data.places)) {
+        setRealPlaces(data.places);
       } else {
-        const err = await res.json().catch(() => ({ error: 'Failed to fetch places' }));
-        setPlacesError(err.error || 'Unable to retrieve location directory.');
+        setRealPlaces([]);
       }
     } catch (err: any) {
       console.warn('[Nearby Map] Error fetching live places:', err);
-      setPlacesError('Could not connect to map discovery service. Please check your internet connection.');
+      setPlacesError('Unable to load nearby places right now. Please try again.');
     } finally {
       setIsLoadingPlaces(false);
     }
@@ -183,12 +190,23 @@ export const NearbyMapView: React.FC = () => {
     }
   }, [gpsAddress, manualAddress, selectedLocation, setSelectedLocation]);
 
+  // Sorted places
+  const sortedPlaces = useMemo(() => {
+    const list = [...realPlaces];
+    if (sortBy === 'name') {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      list.sort((a, b) => a.distanceKm - b.distanceKm);
+    }
+    return list;
+  }, [realPlaces, sortBy]);
+
   // Map markers for Leaflet OpenStreetMap
   const mapMarkers: MapMarkerItem[] = useMemo(() => {
     const list: MapMarkerItem[] = [];
 
     // Real nearby places from OpenStreetMap
-    realPlaces.forEach(p => {
+    sortedPlaces.forEach(p => {
       const dist = distanceUnit === 'mi' ? p.distanceFormattedMi : p.distanceFormatted;
       list.push({
         id: p.id,
@@ -207,7 +225,7 @@ export const NearbyMapView: React.FC = () => {
       });
     });
 
-    // Community animal & emergency markers
+    // Community animal & emergency markers (only when filter is 'all')
     if (activeCategory === 'all') {
       (nearbyMarkers || []).forEach((m, idx) => {
         if (m.lat && m.lng) {
@@ -233,7 +251,7 @@ export const NearbyMapView: React.FC = () => {
     }
 
     return list;
-  }, [realPlaces, nearbyMarkers, activeCategory, distanceUnit]);
+  }, [sortedPlaces, nearbyMarkers, activeCategory, distanceUnit]);
 
   // Currently selected place object
   const selectedPlace = useMemo(() => {
@@ -259,30 +277,31 @@ export const NearbyMapView: React.FC = () => {
     }
   };
 
-  const categories: { id: FilterCategory; label: string; icon: string; count?: number }[] = [
-    { id: 'all', label: 'All Services', icon: '🐾' },
+  const categories: { id: FilterCategory; label: string; icon: string }[] = [
+    { id: 'all', label: 'All Places', icon: '🐾' },
     { id: 'veterinary', label: 'Veterinary', icon: '🩺' },
-    { id: 'emergency_vet', label: 'Emergency Vet', icon: '🚨' },
-    { id: 'pet_shop', label: 'Pet Shops', icon: '🐶' },
-    { id: 'shelter', label: 'Shelters', icon: '🏠' },
-    { id: 'rescue', label: 'Rescue Centers', icon: '🛟' },
+    { id: 'pet_shop', label: 'Pet Shops', icon: '🛍️' },
+    { id: 'shelter', label: 'Shelters & Rescues', icon: '🏠' },
+    { id: 'grooming', label: 'Grooming & Care', icon: '✂️' },
   ];
 
+  const hasExpandedResults = realPlaces.some(p => p.isExpandedRadius);
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-4 pb-24 font-sans text-slate-800">
+    <div className="w-full max-w-7xl mx-auto space-y-4 pb-24 font-sans text-slate-800">
       {/* 1. URGENT PET EMERGENCY BANNER */}
-      <div className="bg-gradient-to-r from-red-700 via-rose-600 to-amber-600 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-red-700 via-rose-600 to-amber-600 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 text-left w-full sm:w-auto">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl flex-shrink-0 animate-pulse">
+          <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl flex-shrink-0 animate-pulse">
             🚨
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-extrabold tracking-tight">PET EMERGENCY OR ACCIDENT?</h2>
-              <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">Live 24/7</span>
+              <h2 className="text-sm sm:text-base font-extrabold tracking-tight">PET EMERGENCY OR ACCIDENT?</h2>
+              <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase">Live 24/7</span>
             </div>
             <p className="text-xs text-red-100 mt-0.5">
-              Instantly find nearest emergency vet hospitals worldwide and dispatch urgent rescue assistance.
+              Locate nearest verified emergency veterinary hospitals worldwide and dispatch urgent community aid.
             </p>
           </div>
         </div>
@@ -290,7 +309,7 @@ export const NearbyMapView: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowEmergencyModal(true)}
-          className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-50 text-red-700 font-extrabold text-xs sm:text-sm rounded-2xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 flex-shrink-0"
+          className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-50 text-red-700 font-extrabold text-xs sm:text-sm rounded-xl shadow-xs active:scale-95 transition-all flex items-center justify-center gap-2 flex-shrink-0"
         >
           <ShieldAlert className="w-4 h-4 text-red-600" />
           <span>OPEN PET EMERGENCY</span>
@@ -316,12 +335,12 @@ export const NearbyMapView: React.FC = () => {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-extrabold text-slate-900 truncate max-w-md">
-                  {manualAddress || gpsAddress || (activeCoords ? `GPS: ${activeCoords.lat.toFixed(4)}°, ${activeCoords.lng.toFixed(4)}°` : 'Acquiring GPS location...')}
+                  {manualAddress || gpsAddress || (activeCoords ? `Coordinates: ${activeCoords.lat.toFixed(4)}°, ${activeCoords.lng.toFixed(4)}°` : 'Acquiring GPS location...')}
                 </span>
 
                 {manualCoords ? (
                   <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                    Custom City Active
+                    Custom Location Active
                   </span>
                 ) : gpsCoords ? (
                   <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
@@ -356,19 +375,45 @@ export const NearbyMapView: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-1">
                   {gpsStatus === 'locating'
                     ? 'Locating device via GPS satellites...'
+                    : gpsStatus === 'denied'
+                    ? 'Location permission is required to find nearby places.'
                     : gpsError || 'Please allow browser location access or search your city below.'}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Quick Controls: Radius, Unit toggle, Refresh, GPS Button */}
+          {/* Quick Controls: Radius, Unit toggle, Mobile View Toggle, GPS Button */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0 self-end md:self-center">
+            {/* Mobile View Toggle (Map vs List) */}
+            <div className="lg:hidden flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setMobileViewMode('map')}
+                className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                  mobileViewMode === 'map' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>Map</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileViewMode('list')}
+                className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                  mobileViewMode === 'list' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List ({realPlaces.length})</span>
+              </button>
+            </div>
+
             {/* Radius Selector */}
             <select
               value={nearbyRadiusKm}
               onChange={e => setNearbyRadiusKm(Number(e.target.value))}
-              className="text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none cursor-pointer"
+              className="text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden cursor-pointer"
             >
               <option value={2}>2 {distanceUnit}</option>
               <option value={5}>5 {distanceUnit}</option>
@@ -420,7 +465,7 @@ export const NearbyMapView: React.FC = () => {
               }`}
             >
               <Navigation className="w-3.5 h-3.5" />
-              <span>{manualCoords ? 'Use My Location' : 'GPS Active'}</span>
+              <span>{manualCoords ? 'Use Current Location' : 'Current Location'}</span>
             </button>
           </div>
         </div>
@@ -433,8 +478,8 @@ export const NearbyMapView: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search any city, neighborhood, postal code / ZIP worldwide (e.g. London, Tokyo, Brooklyn, Paris)..."
-              className="w-full pl-9 pr-9 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-600 focus:bg-white transition-all text-slate-800 placeholder-slate-400"
+              placeholder="Search city, neighborhood, postal code / ZIP worldwide (e.g. London, Tokyo, Brooklyn, Paris, Chennai)..."
+              className="w-full pl-9 pr-9 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-green-600 focus:bg-white transition-all text-slate-800 placeholder-slate-400"
             />
             {isSearchingLocation ? (
               <Loader2 className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-green-700 animate-spin" />
@@ -473,7 +518,7 @@ export const NearbyMapView: React.FC = () => {
                 ))
               ) : !isSearchingLocation ? (
                 <div className="p-4 text-center text-xs text-slate-500">
-                  No matching locations found. Try searching by city name and country (e.g. "Rome, Italy").
+                  No matching locations found. Try searching by city name and country (e.g. "Toronto, Canada").
                 </div>
               ) : null}
             </div>
@@ -482,12 +527,12 @@ export const NearbyMapView: React.FC = () => {
 
         {/* GPS Permission Warning if denied */}
         {gpsStatus === 'denied' && !manualCoords && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-bold">Device location access is turned off.</p>
+              <p className="font-extrabold text-amber-900">Location permission is required to find nearby places.</p>
               <p className="text-[11px] text-amber-800 mt-0.5">
-                Feeder works worldwide. Use the search bar above to discover animal care anywhere, or enable browser location permission to detect your position automatically.
+                You can search any city, neighborhood, or postal code in the search bar above to view real animal-care facilities anywhere in the world.
               </p>
             </div>
           </div>
@@ -524,38 +569,21 @@ export const NearbyMapView: React.FC = () => {
         })}
       </div>
 
-      {/* 4. MAIN MAP & PLACES LIST LAYOUT (RESPONSIVE SPLIT) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* MAP COLUMN (7 cols on desktop) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 border border-slate-100 shadow-xs space-y-2">
-          <LiveOpenStreetMap
-            userCoords={gpsCoords}
-            centerCoords={manualCoords}
-            accuracyMeters={accuracy}
-            markers={mapMarkers}
-            selectedMarkerId={selectedPlaceId}
-            onMarkerSelect={m => setSelectedPlaceId(m.id)}
-            heightClass="h-[360px] sm:h-[480px]"
-          />
-
-          {/* Map Footer Summary */}
-          <div className="px-2 py-1.5 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <span className="flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
-              <span>Real-time data from OpenStreetMap Global Network</span>
-            </span>
-
-            <span>
-              Showing <strong className="text-slate-800">{realPlaces.length}</strong> real-world places
-            </span>
-          </div>
+      {/* Expanded radius notification */}
+      {hasExpandedResults && !isLoadingPlaces && (
+        <div className="px-4 py-2.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl text-xs text-blue-900 flex items-center gap-2">
+          <Compass className="w-4 h-4 text-blue-600 flex-shrink-0" />
+          <span>Notice: Results expanded to nearest verified facilities within 25 km of your location.</span>
         </div>
+      )}
 
-        {/* PLACES LIST COLUMN (5 cols on desktop) */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* Selected Place Details Card (if place selected) */}
+      {/* 4. MAIN MAP & PLACES LIST LAYOUT (RESPONSIVE DUAL SPLIT) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* LEFT COLUMN ON DESKTOP (5 cols): FINDER / RESULTS LIST */}
+        <div className={`lg:col-span-5 space-y-4 ${mobileViewMode === 'map' ? 'hidden lg:block' : 'block'}`}>
+          {/* Selected Place Details Card */}
           {selectedPlace && (
-            <div className="bg-gradient-to-br from-green-900 to-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-xl space-y-3 animate-in fade-in slide-in-from-top-3 duration-200">
+            <div className="bg-gradient-to-br from-green-900 via-slate-900 to-slate-950 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-xl space-y-3 animate-in fade-in slide-in-from-top-3 duration-200">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 text-green-300">
@@ -570,6 +598,7 @@ export const NearbyMapView: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedPlaceId(null)}
                   className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white"
+                  aria-label="Close place details"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -588,7 +617,7 @@ export const NearbyMapView: React.FC = () => {
                 )}
               </div>
 
-              {/* Address */}
+              {/* Verified Address */}
               <div className="text-xs text-slate-300 flex items-start gap-1.5 leading-relaxed">
                 <MapPin className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
                 <span>{selectedPlace.address}</span>
@@ -607,10 +636,10 @@ export const NearbyMapView: React.FC = () => {
                 {selectedPlace.phone ? (
                   <a
                     href={`tel:${selectedPlace.phone}`}
-                    className="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    className="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    <span>Call {selectedPlace.phone}</span>
+                    <span>Call</span>
                   </a>
                 ) : (
                   <button
@@ -627,7 +656,7 @@ export const NearbyMapView: React.FC = () => {
                   href={selectedPlace.directionUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-2.5 px-3 bg-green-500 hover:bg-green-400 text-slate-950 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                  className="py-2.5 px-3 bg-green-500 hover:bg-green-400 text-slate-950 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-all text-center"
                 >
                   <Navigation className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
                   <span>Get Directions ↗</span>
@@ -655,29 +684,43 @@ export const NearbyMapView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                  Verified Nearby Places ({realPlaces.length})
+                  Verified Places ({sortedPlaces.length})
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Sorted by actual geographic distance
+                  Real locations from live global POI network
                 </p>
               </div>
 
-              {isLoadingPlaces && (
-                <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Searching...</span>
-                </div>
-              )}
+              {/* Sort By Toggle */}
+              <div className="flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3 h-3 text-slate-400" />
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  className="text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="distance">Nearest First</option>
+                  <option value="name">A-Z Name</option>
+                </select>
+              </div>
             </div>
 
             {/* Places List Items */}
-            {realPlaces.length > 0 ? (
-              <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
-                {realPlaces.map(place => {
+            {isLoadingPlaces ? (
+              <div className="py-12 text-center space-y-3">
+                <Loader2 className="w-8 h-8 animate-spin text-green-700 mx-auto" />
+                <p className="text-xs font-bold text-slate-700">
+                  Finding nearby animal-care places...
+                </p>
+              </div>
+            ) : sortedPlaces.length > 0 ? (
+              <div className="space-y-2.5 max-h-[540px] overflow-y-auto pr-1">
+                {sortedPlaces.map(place => {
                   const isSelected = selectedPlaceId === place.id;
                   const isHospital = place.type === 'hospital' || place.type === 'emergency_vet';
                   const isPetShop = place.type === 'pet_shop';
                   const isShelter = place.type === 'shelter' || place.type === 'rescue';
+                  const isGrooming = place.type === 'grooming';
 
                   const dist = distanceUnit === 'mi' ? place.distanceFormattedMi : place.distanceFormatted;
 
@@ -688,12 +731,12 @@ export const NearbyMapView: React.FC = () => {
                       onClick={() => setSelectedPlaceId(place.id)}
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? 'border-green-600 bg-green-50/40 ring-2 ring-green-600/20 shadow-xs'
+                          ? 'border-green-600 bg-green-50/50 ring-2 ring-green-600/20 shadow-xs'
                           : 'border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-slate-300'
                       }`}
                     >
                       <div>
-                        {/* Header: Category + Distance */}
+                        {/* Header: Category Badge + Distance */}
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <span
                             className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
@@ -705,6 +748,8 @@ export const NearbyMapView: React.FC = () => {
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : isShelter
                                 ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : isGrooming
+                                ? 'bg-teal-100 text-teal-800 border border-teal-200'
                                 : 'bg-blue-100 text-blue-700 border border-blue-200'
                             }`}
                           >
@@ -755,14 +800,14 @@ export const NearbyMapView: React.FC = () => {
                   );
                 })}
               </div>
-            ) : !isLoadingPlaces ? (
+            ) : (
               <div className="py-10 text-center space-y-2.5">
                 <Compass className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-xs font-bold text-slate-700">
-                  No nearby animal-care locations found in {nearbyRadiusKm} {distanceUnit} radius
+                  No verified places found nearby.
                 </p>
                 <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                  Try expanding the search radius to 25 {distanceUnit} or search another city/neighborhood above.
+                  Try expanding the search radius or search another city/neighborhood above.
                 </p>
                 <div className="pt-2 flex justify-center gap-2">
                   <button
@@ -772,19 +817,9 @@ export const NearbyMapView: React.FC = () => {
                   >
                     Expand to 25 {distanceUnit}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.querySelector('input[type="text"]') as HTMLInputElement;
-                      if (input) input.focus();
-                    }}
-                    className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
-                  >
-                    Search Another City
-                  </button>
                 </div>
               </div>
-            ) : null}
+            )}
 
             {placesError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 space-y-1">
@@ -798,6 +833,33 @@ export const NearbyMapView: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN ON DESKTOP (7 cols): LARGE INTERACTIVE MAP */}
+        <div className={`lg:col-span-7 bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 border border-slate-100 shadow-xs space-y-2 ${mobileViewMode === 'list' ? 'hidden lg:block' : 'block'}`}>
+          <LiveOpenStreetMap
+            userCoords={gpsCoords}
+            centerCoords={manualCoords}
+            accuracyMeters={accuracy}
+            markers={mapMarkers}
+            selectedMarkerId={selectedPlaceId}
+            onMarkerSelect={m => {
+              setSelectedPlaceId(m.id);
+            }}
+            heightClass="h-[420px] sm:h-[560px]"
+          />
+
+          {/* Map Footer Summary */}
+          <div className="px-2 py-1.5 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <span className="flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
+              <span>Real-time data from OpenStreetMap Global Network</span>
+            </span>
+
+            <span>
+              Showing <strong className="text-slate-800">{sortedPlaces.length}</strong> real places
+            </span>
           </div>
         </div>
       </div>

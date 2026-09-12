@@ -918,29 +918,108 @@ backendRouter.post("/media/delete", requireFirebaseAuth, async (req, res) => {
     return res.status(500).json({ error: err.message || "Media delete failed." });
   }
 });
+backendRouter.get("/profile/check-username", async (req, res) => {
+  try {
+    const rawUsername = req.query.username || "";
+    const cleanUsername = rawUsername.trim().toLowerCase().replace(/^@/, "");
+    if (!cleanUsername || cleanUsername.length < 3) {
+      return res.json({ available: false, reason: "Username must be at least 3 characters long." });
+    }
+    if (cleanUsername.length > 30) {
+      return res.json({ available: false, reason: "Username cannot exceed 30 characters." });
+    }
+    if (!/^[a-z0-9._]+$/.test(cleanUsername)) {
+      return res.json({ available: false, reason: "Username can only contain lowercase letters, numbers, underscores, and dots." });
+    }
+    if (cleanUsername.startsWith(".") || cleanUsername.endsWith(".") || cleanUsername.includes("..")) {
+      return res.json({ available: false, reason: "Username cannot begin, end, or contain consecutive dots." });
+    }
+    try {
+      const { data, error } = await supabaseAdmin.from("profiles").select("firebase_uid, username").ilike("username", cleanUsername);
+      if (error) {
+        if (error.code === "42703") {
+          return res.json({ available: true, username: cleanUsername });
+        }
+        console.warn("[Check Username] Query notice:", error.message);
+        return res.json({ available: true, username: cleanUsername });
+      }
+      if (data && data.length > 0) {
+        const authHeader = req.headers.authorization;
+        let callerUid = null;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          try {
+            const decoded = await verifyFirebaseIdToken(authHeader.split("Bearer ")[1].trim());
+            callerUid = decoded.uid;
+          } catch {
+          }
+        }
+        const isSelf = callerUid && data.some((p) => p.firebase_uid === callerUid);
+        if (isSelf) {
+          return res.json({ available: true, username: cleanUsername });
+        }
+        return res.json({ available: false, reason: "Username is already taken by another user." });
+      }
+      return res.json({ available: true, username: cleanUsername });
+    } catch (dbErr) {
+      return res.json({ available: true, username: cleanUsername });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Username check failed." });
+  }
+});
 backendRouter.post("/profile/sync", requireFirebaseAuth, async (req, res) => {
   try {
     const verifiedUid = req.user.uid;
     const user = req.body || {};
-    const avatarUrl = user.avatar || user.photo_url || req.user.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(verifiedUid)}`;
-    const name = user.name || req.user.name || "Feeder Caregiver";
-    const email = user.email || req.user.email || null;
-    const bio = user.bio !== void 0 ? user.bio : "Compassionate animal lover, street feeder & pet protector.";
-    const location = user.location !== void 0 ? user.location : "";
+    const avatarUrl = (user.avatar || user.photo_url || "").trim() || req.user.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(verifiedUid)}`;
+    const name = (user.name || "").trim() || req.user.name || "Feeder Caregiver";
+    const email = (user.email || "").trim() || req.user.email || null;
+    const bio = user.bio !== void 0 ? String(user.bio).trim() : "Compassionate animal lover, street feeder & pet protector.";
+    const location = user.location !== void 0 ? String(user.location).trim() : "";
+    let rawUsername = user.username ? String(user.username).trim().toLowerCase().replace(/^@/, "") : "";
+    if (rawUsername && !/^[a-z0-9._]{3,30}$/.test(rawUsername)) {
+      rawUsername = rawUsername.replace(/[^a-z0-9._]/g, "").slice(0, 30);
+    }
+    const finalUsername = rawUsername || null;
     const { data: existingProfile } = await supabaseAdmin.from("profiles").select("*").eq("firebase_uid", verifiedUid).maybeSingle();
+    if (finalUsername) {
+      try {
+        const { data: existingUsersWithUsername } = await supabaseAdmin.from("profiles").select("firebase_uid").ilike("username", finalUsername);
+        if (existingUsersWithUsername && existingUsersWithUsername.length > 0) {
+          const conflict = existingUsersWithUsername.find((p) => p.firebase_uid !== verifiedUid);
+          if (conflict) {
+            return res.status(409).json({
+              error: "Username is already taken by another user. Please choose another.",
+              code: "USERNAME_TAKEN"
+            });
+          }
+        }
+      } catch (checkErr) {
+      }
+    }
     let profileResult;
     if (existingProfile) {
-      const { data, error } = await supabaseAdmin.from("profiles").update({
+      const updatePayload = {
         name: name || existingProfile.name,
         email: email || existingProfile.email,
-        photo_url: user.avatar || user.photo_url || existingProfile.photo_url || avatarUrl,
-        bio: bio || existingProfile.bio,
-        location: location || existingProfile.location
-      }).eq("firebase_uid", verifiedUid).select("*").single();
+        photo_url: (user.avatar || user.photo_url || "").trim() || existingProfile.photo_url || avatarUrl,
+        bio: user.bio !== void 0 ? bio : existingProfile.bio,
+        location: user.location !== void 0 ? location : existingProfile.location
+      };
+      if (finalUsername) {
+        updatePayload.username = finalUsername;
+      }
+      let { data, error } = await supabaseAdmin.from("profiles").update(updatePayload).eq("firebase_uid", verifiedUid).select("*").single();
+      if (error && error.code === "42703" && updatePayload.username) {
+        delete updatePayload.username;
+        const retry = await supabaseAdmin.from("profiles").update(updatePayload).eq("firebase_uid", verifiedUid).select("*").single();
+        data = retry.data;
+        error = retry.error;
+      }
       if (error) throw error;
       profileResult = data;
     } else {
-      const { data, error } = await supabaseAdmin.from("profiles").insert({
+      const insertPayload = {
         firebase_uid: verifiedUid,
         name,
         email,
@@ -948,7 +1027,17 @@ backendRouter.post("/profile/sync", requireFirebaseAuth, async (req, res) => {
         bio,
         location,
         created_at: (/* @__PURE__ */ new Date()).toISOString()
-      }).select("*").single();
+      };
+      if (finalUsername) {
+        insertPayload.username = finalUsername;
+      }
+      let { data, error } = await supabaseAdmin.from("profiles").insert(insertPayload).select("*").single();
+      if (error && error.code === "42703" && insertPayload.username) {
+        delete insertPayload.username;
+        const retry = await supabaseAdmin.from("profiles").insert(insertPayload).select("*").single();
+        data = retry.data;
+        error = retry.error;
+      }
       if (error) throw error;
       profileResult = data;
     }
@@ -970,6 +1059,105 @@ backendRouter.get("/profile/:uid", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+backendRouter.post("/users/:targetUserId/follow", requireFirebaseAuth, async (req, res) => {
+  try {
+    const followerUid = req.user.uid;
+    const targetUid = req.params.targetUserId;
+    if (!targetUid) {
+      return res.status(400).json({ error: "Target user ID is required." });
+    }
+    if (followerUid === targetUid) {
+      return res.status(400).json({ error: "You cannot follow yourself." });
+    }
+    const { data: existingFollow, error: fetchErr } = await supabaseAdmin.from("followers").select("id").eq("follower_uid", followerUid).eq("following_uid", targetUid).maybeSingle();
+    if (fetchErr) {
+      console.error("[Follow Route] Error checking follow relation:", fetchErr);
+      return res.status(500).json({ error: fetchErr.message });
+    }
+    let isFollowing = false;
+    if (existingFollow) {
+      const { error: delErr } = await supabaseAdmin.from("followers").delete().eq("id", existingFollow.id);
+      if (delErr) throw delErr;
+      isFollowing = false;
+    } else {
+      const { error: insErr } = await supabaseAdmin.from("followers").insert({
+        follower_uid: followerUid,
+        following_uid: targetUid,
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      if (insErr) throw insErr;
+      isFollowing = true;
+    }
+    const { count: followersCount } = await supabaseAdmin.from("followers").select("*", { count: "exact", head: true }).eq("following_uid", targetUid);
+    const { count: followingCount } = await supabaseAdmin.from("followers").select("*", { count: "exact", head: true }).eq("follower_uid", followerUid);
+    return res.json({
+      success: true,
+      following: isFollowing,
+      isFollowing,
+      targetFollowersCount: followersCount ?? 0,
+      currentFollowingCount: followingCount ?? 0
+    });
+  } catch (err) {
+    console.error("[Follow Route] Error:", err);
+    return res.status(500).json({ error: err.message || "Follow action failed." });
+  }
+});
+backendRouter.get("/users/:targetUserId/followers", async (req, res) => {
+  try {
+    const { targetUserId } = req.params;
+    const { data: followRows, error: followErr } = await supabaseAdmin.from("followers").select("follower_uid").eq("following_uid", targetUserId);
+    if (followErr) throw followErr;
+    const followerUids = (followRows || []).map((r) => r.follower_uid).filter(Boolean);
+    if (followerUids.length === 0) {
+      return res.json({ success: true, followers: [] });
+    }
+    const { data: profiles, error: profErr } = await supabaseAdmin.from("profiles").select("*").in("firebase_uid", followerUids);
+    if (profErr) throw profErr;
+    const followers = (profiles || []).map((p) => {
+      const uid = p.firebase_uid || p.id || "";
+      return {
+        id: uid,
+        firebase_uid: uid,
+        name: p.name || "Feeder Caregiver",
+        username: p.username || (p.name || "feeder").toLowerCase().replace(/[^a-z0-9_]/g, "") || "feeder",
+        avatar: p.photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`,
+        bio: p.bio || "",
+        location: p.location || ""
+      };
+    });
+    return res.json({ success: true, followers });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Failed to fetch followers." });
+  }
+});
+backendRouter.get("/users/:targetUserId/following", async (req, res) => {
+  try {
+    const { targetUserId } = req.params;
+    const { data: followRows, error: followErr } = await supabaseAdmin.from("followers").select("following_uid").eq("follower_uid", targetUserId);
+    if (followErr) throw followErr;
+    const followingUids = (followRows || []).map((r) => r.following_uid).filter(Boolean);
+    if (followingUids.length === 0) {
+      return res.json({ success: true, following: [] });
+    }
+    const { data: profiles, error: profErr } = await supabaseAdmin.from("profiles").select("*").in("firebase_uid", followingUids);
+    if (profErr) throw profErr;
+    const following = (profiles || []).map((p) => {
+      const uid = p.firebase_uid || p.id || "";
+      return {
+        id: uid,
+        firebase_uid: uid,
+        name: p.name || "Feeder Caregiver",
+        username: p.username || (p.name || "feeder").toLowerCase().replace(/[^a-z0-9_]/g, "") || "feeder",
+        avatar: p.photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`,
+        bio: p.bio || "",
+        location: p.location || ""
+      };
+    });
+    return res.json({ success: true, following });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Failed to fetch following." });
+  }
+});
 backendRouter.get("/users/search", async (req, res) => {
   try {
     const rawQuery = req.query.q || "";
@@ -977,49 +1165,69 @@ backendRouter.get("/users/search", async (req, res) => {
     if (!cleanQuery) {
       return res.json({ success: true, users: [] });
     }
-    const sanitized = cleanQuery.replace(/[%_,()\\.]/g, " ").trim();
+    const sanitized = cleanQuery.replace(/[%_,()\\:*]/g, " ").replace(/\s+/g, " ").trim();
     if (!sanitized) {
       return res.json({ success: true, users: [] });
     }
-    const { data: directProfiles, error } = await supabaseAdmin.from("profiles").select("id, firebase_uid, name, photo_url, bio, location, created_at").or(`name.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`).limit(20);
-    if (error) {
-      console.warn("[User Search] Supabase query notice:", error.message);
-      return res.status(500).json({ error: error.message, users: [] });
+    let profiles = [];
+    try {
+      const { data, error } = await supabaseAdmin.from("profiles").select("*").or(`name.ilike.%${sanitized}%,username.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`).limit(25);
+      if (error) {
+        if (error.code === "42703") {
+          const fallback = await supabaseAdmin.from("profiles").select("*").or(`name.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`).limit(25);
+          profiles = fallback.data || [];
+        } else {
+          console.warn("[User Search] Supabase query notice:", error.message);
+          profiles = [];
+        }
+      } else {
+        profiles = data || [];
+      }
+    } catch (searchErr) {
+      console.warn("[User Search] Search error:", searchErr);
     }
-    let profiles = directProfiles || [];
     if (profiles.length === 0 && sanitized.length >= 3) {
       const prefix = sanitized.slice(0, 4);
-      const { data: prefixProfiles } = await supabaseAdmin.from("profiles").select("id, firebase_uid, name, photo_url, bio, location, created_at").ilike("name", `%${prefix}%`).limit(20);
+      const { data: prefixProfiles } = await supabaseAdmin.from("profiles").select("*").ilike("name", `%${prefix}%`).limit(20);
       if (prefixProfiles && prefixProfiles.length > 0) {
         const queryNormalized = sanitized.toLowerCase();
         profiles = prefixProfiles.filter((p) => {
           const normName = (p.name || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
-          return normName.includes(queryNormalized);
+          const normUser = (p.username || "").toLowerCase();
+          return normName.includes(queryNormalized) || normUser.includes(queryNormalized);
         });
       }
     }
-    const users = profiles.map((p) => {
-      const uid = p.firebase_uid || p.id || "";
-      const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid || "feeder")}`;
-      return {
-        id: uid,
-        firebase_uid: uid,
-        name: p.name || "Feeder Caregiver",
-        username: (p.name || "feeder").toLowerCase().replace(/[^a-z0-9_]/g, "") || "feeder",
-        avatar: p.photo_url || defaultAvatar,
-        bio: p.bio || "",
-        location: p.location || "",
-        roles: ["Feeder", "Animal Lover"],
-        interests: ["Community Care"],
-        postsCount: 0,
-        followersCount: 0,
-        followingCount: 0,
-        followerIds: [],
-        followingIds: [],
-        joinedDate: p.created_at ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Joined recently",
-        isVerified: true
-      };
-    });
+    const users = await Promise.all(
+      profiles.map(async (p) => {
+        const uid = p.firebase_uid || p.id || "";
+        const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid || "feeder")}`;
+        const [followersRes, followingRes] = await Promise.all([
+          supabaseAdmin.from("followers").select("follower_uid").eq("following_uid", uid),
+          supabaseAdmin.from("followers").select("following_uid").eq("follower_uid", uid)
+        ]);
+        const followerIds = (followersRes.data || []).map((r) => r.follower_uid);
+        const followingIds = (followingRes.data || []).map((r) => r.following_uid);
+        return {
+          id: uid,
+          firebase_uid: uid,
+          name: p.name || "Feeder Caregiver",
+          username: p.username || (p.name || "feeder").toLowerCase().replace(/[^a-z0-9_]/g, "") || "feeder",
+          avatar: p.photo_url || defaultAvatar,
+          bio: p.bio || "",
+          location: p.location || "",
+          roles: ["Feeder", "Animal Lover"],
+          interests: ["Community Care"],
+          postsCount: 0,
+          followersCount: followerIds.length,
+          followingCount: followingIds.length,
+          followerIds,
+          followingIds,
+          joinedDate: p.created_at ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Joined recently",
+          isVerified: true
+        };
+      })
+    );
     return res.json({ success: true, users });
   } catch (err) {
     console.error("[User Search] Unexpected error:", err);
@@ -2465,8 +2673,225 @@ function parseIsOpen(openingHours) {
   }
   return null;
 }
+function buildOverpassQuery(lat, lng, radiusMeters, category = "all") {
+  let clauses = "";
+  if (category === "veterinary" || category === "hospital" || category === "clinic" || category === "emergency_vet") {
+    clauses = `
+      node["amenity"="veterinary"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="veterinary"](around:${radiusMeters},${lat},${lng});
+      node["healthcare"="veterinary"](around:${radiusMeters},${lat},${lng});
+      way["healthcare"="veterinary"](around:${radiusMeters},${lat},${lng});
+      node["veterinary"](around:${radiusMeters},${lat},${lng});
+      way["veterinary"](around:${radiusMeters},${lat},${lng});
+    `;
+  } else if (category === "pet_shop") {
+    clauses = `
+      node["shop"="pet"](around:${radiusMeters},${lat},${lng});
+      way["shop"="pet"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="pharmacy"]["veterinary"="yes"](around:${radiusMeters},${lat},${lng});
+    `;
+  } else if (category === "shelter" || category === "rescue") {
+    clauses = `
+      node["amenity"="animal_shelter"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="animal_shelter"](around:${radiusMeters},${lat},${lng});
+      node["animal_rescue"](around:${radiusMeters},${lat},${lng});
+      way["animal_rescue"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="animal_boarding"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="animal_boarding"](around:${radiusMeters},${lat},${lng});
+    `;
+  } else if (category === "grooming") {
+    clauses = `
+      node["shop"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      way["shop"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      node["craft"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      way["craft"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      node["craft"="pet_groomer"](around:${radiusMeters},${lat},${lng});
+      way["craft"="pet_groomer"](around:${radiusMeters},${lat},${lng});
+      node["service"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      way["service"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+    `;
+  } else {
+    clauses = `
+      node["amenity"="veterinary"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="veterinary"](around:${radiusMeters},${lat},${lng});
+      node["healthcare"="veterinary"](around:${radiusMeters},${lat},${lng});
+      way["healthcare"="veterinary"](around:${radiusMeters},${lat},${lng});
+      node["shop"="pet"](around:${radiusMeters},${lat},${lng});
+      way["shop"="pet"](around:${radiusMeters},${lat},${lng});
+      node["shop"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      way["shop"="pet_grooming"](around:${radiusMeters},${lat},${lng});
+      node["craft"="pet_groomer"](around:${radiusMeters},${lat},${lng});
+      way["craft"="pet_groomer"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="animal_shelter"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="animal_shelter"](around:${radiusMeters},${lat},${lng});
+      node["animal_rescue"](around:${radiusMeters},${lat},${lng});
+      way["animal_rescue"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="animal_boarding"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="animal_boarding"](around:${radiusMeters},${lat},${lng});
+    `;
+  }
+  return `[out:json][timeout:15];(${clauses});out center tags;`;
+}
+async function executeOverpassQuery(query) {
+  const mirrors = [
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass-api.de/api/interpreter"
+  ];
+  for (const mirror of mirrors) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7e3);
+      const response = await fetch(mirror, {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "User-Agent": "FeederPetCareApp/2.0 (global.animal.care)"
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data.elements)) {
+          return data.elements;
+        }
+      }
+    } catch {
+    }
+  }
+  return [];
+}
+function parseOverpassElements(elements, userLat, userLng, category, isExpanded = false) {
+  const results = [];
+  const seenCoordinates = /* @__PURE__ */ new Set();
+  const seenIds = /* @__PURE__ */ new Set();
+  for (const elem of elements) {
+    const tags = elem.tags || {};
+    const lat = elem.lat || elem.center?.lat;
+    const lng = elem.lon || elem.center?.lon;
+    if (!lat || !lng) continue;
+    const osmId = `osm_${elem.type || "node"}_${elem.id}`;
+    if (seenIds.has(osmId)) continue;
+    seenIds.add(osmId);
+    const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (seenCoordinates.has(coordKey)) continue;
+    seenCoordinates.add(coordKey);
+    const name = tags.name || tags["name:en"] || tags.brand || tags.operator || (tags.shop === "pet" ? "Pet Shop" : tags.shop === "pet_grooming" || tags.craft === "pet_groomer" ? "Pet Grooming & Care" : tags.amenity === "animal_shelter" || tags.animal_shelter === "yes" ? "Animal Shelter" : tags.amenity === "animal_boarding" ? "Animal Care & Boarding" : tags.amenity === "pharmacy" ? "Veterinary Pharmacy" : "Veterinary Clinic");
+    const nameLower = name.toLowerCase();
+    let placeType = "clinic";
+    let categoryLabel = "Veterinary Clinic";
+    let isEmergency = false;
+    if (tags.shop === "pet_grooming" || tags.craft === "pet_grooming" || tags.craft === "pet_groomer" || tags.service === "pet_grooming" || nameLower.includes("grooming") || nameLower.includes("pet spa") || nameLower.includes("dog wash")) {
+      placeType = "grooming";
+      categoryLabel = "Pet Grooming & Care";
+    } else if (tags.amenity === "animal_shelter" || tags.animal_shelter === "yes" || tags.animal_shelter === "shelter" || nameLower.includes("animal shelter") || nameLower.includes("dog shelter") || nameLower.includes("cat shelter")) {
+      placeType = "shelter";
+      categoryLabel = "Animal Shelter";
+    } else if (tags.animal_rescue || tags.rescue === "animal" || nameLower.includes("rescue") || nameLower.includes("spca") || nameLower.includes("rspca") || nameLower.includes("humane society") || nameLower.includes("blue cross") || nameLower.includes("animal protection") || nameLower.includes("animal welfare")) {
+      placeType = "rescue";
+      categoryLabel = "Animal Rescue Center";
+    } else if (tags.amenity === "animal_boarding") {
+      placeType = "welfare_org";
+      categoryLabel = "Animal Care & Boarding";
+    } else if (tags.amenity === "pharmacy" && (tags.veterinary === "yes" || tags.pet === "yes")) {
+      placeType = "pet_pharmacy";
+      categoryLabel = "Pet Pharmacy";
+    } else if (tags.shop === "pet") {
+      placeType = "pet_shop";
+      categoryLabel = "Pet Shop & Supplies";
+    } else {
+      isEmergency = tags.emergency === "yes" || tags.veterinary === "emergency" || tags.opening_hours && tags.opening_hours.includes("24/7") || nameLower.includes("emergency") || nameLower.includes("trauma") || nameLower.includes("urgent care") || nameLower.includes("24 hour") || nameLower.includes("24hr") || nameLower.includes("24/7");
+      const isHospital = tags.veterinary === "hospital" || tags.healthcare === "hospital" || nameLower.includes("hospital");
+      if (isEmergency) {
+        placeType = "emergency_vet";
+        categoryLabel = "Emergency Veterinary Hospital";
+      } else if (isHospital) {
+        placeType = "hospital";
+        categoryLabel = "Veterinary Hospital";
+      } else {
+        placeType = "clinic";
+        categoryLabel = "Veterinary Clinic";
+      }
+    }
+    if (category && category !== "all") {
+      if (category === "veterinary") {
+        if (placeType !== "hospital" && placeType !== "clinic" && placeType !== "emergency_vet") {
+          continue;
+        }
+      } else if (category === "emergency_vet") {
+        if (placeType !== "emergency_vet" && !isEmergency && placeType !== "hospital") {
+          continue;
+        }
+      } else if (category === "pet_shop") {
+        if (placeType !== "pet_shop" && placeType !== "pet_pharmacy") {
+          continue;
+        }
+      } else if (category === "shelter") {
+        if (placeType !== "shelter" && placeType !== "rescue" && placeType !== "welfare_org") {
+          continue;
+        }
+      } else if (category === "rescue") {
+        if (placeType !== "rescue" && placeType !== "shelter" && placeType !== "welfare_org") {
+          continue;
+        }
+      } else if (category === "grooming") {
+        if (placeType !== "grooming") {
+          continue;
+        }
+      } else if (placeType !== category) {
+        continue;
+      }
+    }
+    const street = tags["addr:street"] || tags["addr:road"] || "";
+    const housenumber = tags["addr:housenumber"] || "";
+    const suburb = tags["addr:suburb"] || tags["addr:neighbourhood"] || tags["addr:district"] || "";
+    const city = tags["addr:city"] || tags["addr:town"] || tags["addr:village"] || tags["addr:county"] || "";
+    const state = tags["addr:state"] || "";
+    const postcode = tags["addr:postcode"] || "";
+    const country = tags["addr:country"] || "";
+    const addressParts = [
+      [housenumber, street].filter(Boolean).join(" "),
+      suburb,
+      city,
+      state,
+      postcode,
+      country
+    ].filter(Boolean);
+    const address = addressParts.length > 0 ? addressParts.join(", ") : `${name}, Coordinates: ${lat.toFixed(4)}\xB0, ${lng.toFixed(4)}\xB0`;
+    const phone = tags.phone || tags["contact:phone"] || tags["phone:mobile"] || tags["contact:mobile"] || null;
+    const openHours = tags.opening_hours || (isEmergency ? "24/7 Emergency Care" : null);
+    const isOpen = parseIsOpen(openHours);
+    const website = tags.website || tags["contact:website"] || tags.url || null;
+    const distanceKm = calculateHaversineDistanceKm(userLat, userLng, lat, lng);
+    results.push({
+      id: osmId,
+      name,
+      type: placeType,
+      categoryLabel,
+      lat,
+      lng,
+      distanceKm,
+      distanceFormatted: formatDistanceKm(distanceKm),
+      distanceFormattedMi: formatDistanceMi(distanceKm),
+      address,
+      phone,
+      openHours,
+      isOpen,
+      website,
+      isEmergency,
+      directionUrl: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+      isExpandedRadius: isExpanded
+    });
+  }
+  results.sort((a, b) => a.distanceKm - b.distanceKm);
+  return results;
+}
 async function fetchNearbyPetPlaces(userLat, userLng, radiusKm = 10, category = "all") {
-  const radiusMeters = Math.min(Math.max(Math.round(radiusKm * 1e3), 1e3), 5e4);
+  const boundedRadius = Math.min(Math.max(radiusKm, 1), 50);
+  const radiusMeters = Math.round(boundedRadius * 1e3);
   const cacheKey = `${userLat.toFixed(2)}_${userLng.toFixed(2)}_${radiusMeters}_${category}`;
   const cached = placesCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -2480,184 +2905,29 @@ async function fetchNearbyPetPlaces(userLat, userLng, radiusKm = 10, category = 
       };
     }).sort((a, b) => a.distanceKm - b.distanceKm);
   }
-  const overpassQuery = `
-    [out:json][timeout:25];
-    (
-      node["amenity"="veterinary"](around:${radiusMeters},${userLat},${userLng});
-      way["amenity"="veterinary"](around:${radiusMeters},${userLat},${userLng});
-      node["healthcare"="veterinary"](around:${radiusMeters},${userLat},${userLng});
-      way["healthcare"="veterinary"](around:${radiusMeters},${userLat},${userLng});
-      node["shop"="pet"](around:${radiusMeters},${userLat},${userLng});
-      way["shop"="pet"](around:${radiusMeters},${userLat},${userLng});
-      node["shop"="pet_grooming"](around:${radiusMeters},${userLat},${userLng});
-      way["shop"="pet_grooming"](around:${radiusMeters},${userLat},${userLng});
-      node["amenity"="animal_shelter"](around:${radiusMeters},${userLat},${userLng});
-      way["amenity"="animal_shelter"](around:${radiusMeters},${userLat},${userLng});
-      node["amenity"="animal_boarding"](around:${radiusMeters},${userLat},${userLng});
-      way["amenity"="animal_boarding"](around:${radiusMeters},${userLat},${userLng});
-      node["animal_rescue"](around:${radiusMeters},${userLat},${userLng});
-      way["animal_rescue"](around:${radiusMeters},${userLat},${userLng});
-      node["amenity"="pharmacy"]["veterinary"="yes"](around:${radiusMeters},${userLat},${userLng});
-      way["amenity"="pharmacy"]["veterinary"="yes"](around:${radiusMeters},${userLat},${userLng});
-    );
-    out center tags;
-  `;
-  const mirrors = [
-    "https://overpass-api.de/api/interpreter",
-    "https://lz4.overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter"
-  ];
-  let elements = [];
-  let querySucceeded = false;
-  for (const mirror of mirrors) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12e3);
-      const response = await fetch(mirror, {
-        method: "POST",
-        body: `data=${encodeURIComponent(overpassQuery)}`,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          "User-Agent": "FeederPetCareApp/2.0 (global.animal.care)"
-        },
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      if (response.ok) {
-        const data = await response.json();
-        elements = data.elements || [];
-        querySucceeded = true;
-        break;
-      }
-    } catch {
+  const initialQuery = buildOverpassQuery(userLat, userLng, radiusMeters, category);
+  let elements = await executeOverpassQuery(initialQuery);
+  let parsed = parseOverpassElements(elements, userLat, userLng, category, false);
+  if (parsed.length === 0 && boundedRadius < 25) {
+    const expandedRadiusMeters = 25e3;
+    const expandedQuery = buildOverpassQuery(userLat, userLng, expandedRadiusMeters, category);
+    const expandedElements = await executeOverpassQuery(expandedQuery);
+    const expandedParsed = parseOverpassElements(expandedElements, userLat, userLng, category, true);
+    if (expandedParsed.length > 0) {
+      parsed = expandedParsed;
     }
   }
-  if (!querySucceeded && cached) {
-    return cached.results;
-  }
-  try {
-    const results = [];
-    const seenCoordinates = /* @__PURE__ */ new Set();
-    for (const elem of elements) {
-      const tags = elem.tags || {};
-      const lat = elem.lat || elem.center?.lat;
-      const lng = elem.lon || elem.center?.lon;
-      if (!lat || !lng) continue;
-      const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-      if (seenCoordinates.has(coordKey)) continue;
-      seenCoordinates.add(coordKey);
-      const name = tags.name || tags["name:en"] || tags.brand || tags.operator || (tags.shop === "pet" ? "Pet Shop" : tags.shop === "pet_grooming" ? "Pet Grooming" : tags.amenity === "animal_shelter" ? "Animal Shelter" : tags.amenity === "animal_boarding" ? "Animal Care & Boarding" : tags.amenity === "pharmacy" ? "Veterinary Pharmacy" : "Veterinary Clinic");
-      const nameLower = name.toLowerCase();
-      let placeType = "clinic";
-      let categoryLabel = "Veterinary Clinic";
-      let isEmergency = false;
-      if (tags.amenity === "animal_shelter" || tags.animal_shelter === "yes") {
-        placeType = "shelter";
-        categoryLabel = "Animal Shelter";
-      } else if (tags.animal_rescue || nameLower.includes("rescue") || nameLower.includes("spca") || nameLower.includes("humane society") || nameLower.includes("animal protection") || nameLower.includes("welfare")) {
-        placeType = "rescue";
-        categoryLabel = "Animal Rescue Center";
-      } else if (tags.amenity === "animal_boarding") {
-        placeType = "welfare_org";
-        categoryLabel = "Animal Welfare Org";
-      } else if (tags.amenity === "pharmacy" && (tags.veterinary === "yes" || tags.pet === "yes")) {
-        placeType = "pet_pharmacy";
-        categoryLabel = "Pet Pharmacy";
-      } else if (tags.shop === "pet" || tags.shop === "pet_grooming") {
-        placeType = "pet_shop";
-        categoryLabel = tags.shop === "pet_grooming" ? "Pet Grooming & Care" : "Pet Shop & Supplies";
-      } else {
-        isEmergency = tags.emergency === "yes" || tags.veterinary === "emergency" || tags.opening_hours && tags.opening_hours.includes("24/7") || nameLower.includes("emergency") || nameLower.includes("trauma") || nameLower.includes("urgent care") || nameLower.includes("24 hour") || nameLower.includes("24hr") || nameLower.includes("24/7");
-        const isHospital = tags.veterinary === "hospital" || tags.healthcare === "hospital" || nameLower.includes("hospital");
-        if (isEmergency) {
-          placeType = "emergency_vet";
-          categoryLabel = "Emergency Veterinary Hospital";
-        } else if (isHospital) {
-          placeType = "hospital";
-          categoryLabel = "Veterinary Hospital";
-        } else {
-          placeType = "clinic";
-          categoryLabel = "Veterinary Clinic";
-        }
-      }
-      if (category && category !== "all") {
-        if (category === "veterinary") {
-          if (placeType !== "hospital" && placeType !== "clinic" && placeType !== "emergency_vet") {
-            continue;
-          }
-        } else if (category === "emergency_vet") {
-          if (placeType !== "emergency_vet" && !isEmergency && placeType !== "hospital") {
-            continue;
-          }
-        } else if (category === "pet_shop") {
-          if (placeType !== "pet_shop" && placeType !== "pet_pharmacy") {
-            continue;
-          }
-        } else if (category === "shelter") {
-          if (placeType !== "shelter") {
-            continue;
-          }
-        } else if (category === "rescue") {
-          if (placeType !== "rescue" && placeType !== "welfare_org") {
-            continue;
-          }
-        } else if (placeType !== category) {
-          continue;
-        }
-      }
-      const street = tags["addr:street"] || tags["addr:road"] || "";
-      const housenumber = tags["addr:housenumber"] || "";
-      const suburb = tags["addr:suburb"] || tags["addr:neighbourhood"] || tags["addr:district"] || "";
-      const city = tags["addr:city"] || tags["addr:town"] || tags["addr:village"] || tags["addr:county"] || "";
-      const state = tags["addr:state"] || "";
-      const postcode = tags["addr:postcode"] || "";
-      const country = tags["addr:country"] || "";
-      const addressParts = [
-        [housenumber, street].filter(Boolean).join(" "),
-        suburb,
-        city,
-        state,
-        postcode,
-        country
-      ].filter(Boolean);
-      const address = addressParts.length > 0 ? addressParts.join(", ") : `${name}, GPS: ${lat.toFixed(4)}\xB0, ${lng.toFixed(4)}\xB0`;
-      const phone = tags.phone || tags["contact:phone"] || tags["phone:mobile"] || tags["contact:mobile"] || null;
-      const openHours = tags.opening_hours || (isEmergency ? "24/7 Emergency Care" : null);
-      const isOpen = parseIsOpen(openHours);
-      const website = tags.website || tags["contact:website"] || tags.url || null;
-      const distanceKm = calculateHaversineDistanceKm(userLat, userLng, lat, lng);
-      results.push({
-        id: `osm_${elem.type}_${elem.id}`,
-        name,
-        type: placeType,
-        categoryLabel,
-        lat,
-        lng,
-        distanceKm,
-        distanceFormatted: formatDistanceKm(distanceKm),
-        distanceFormattedMi: formatDistanceMi(distanceKm),
-        address,
-        phone,
-        openHours,
-        isOpen,
-        website,
-        isEmergency,
-        directionUrl: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-      });
-    }
-    results.sort((a, b) => a.distanceKm - b.distanceKm);
+  if (parsed.length > 0) {
     placesCache.set(cacheKey, {
       timestamp: Date.now(),
-      results
+      results: parsed
     });
-    return results;
-  } catch (err) {
-    console.warn("[Places Service] Notice:", err.message);
-    if (cached) {
-      return cached.results;
-    }
-    return [];
+    return parsed;
   }
+  if (cached) {
+    return cached.results;
+  }
+  return [];
 }
 
 // server.ts

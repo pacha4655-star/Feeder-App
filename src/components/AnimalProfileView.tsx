@@ -35,7 +35,7 @@ export const AnimalProfileView: React.FC<AnimalProfileViewProps> = ({ animalId, 
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs overflow-hidden pb-24 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden font-sans">
       {/* Top Floating Controls */}
       <div className="relative">
         <div className="h-60 sm:h-80 w-full overflow-hidden bg-gray-100">

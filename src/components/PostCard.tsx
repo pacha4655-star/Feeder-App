@@ -10,7 +10,6 @@ import {
   Download,
   FileText,
   AlertTriangle,
-  PawPrint,
   Trash2,
   Loader2,
   AlertCircle,
@@ -70,7 +69,7 @@ const PostMediaItem: React.FC<PostMediaItemProps> = ({ url, postType, alt }) => 
               setHasError(false);
               setReloadKey(k => k + 1);
             }}
-            className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-[11px] font-semibold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" /> Retry
           </button>
@@ -111,8 +110,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setActiveCommunityId,
     registeredUsers,
     openUserProfile,
-    user,
-    showToast
+    user
   } = useApp();
 
   const [showComments, setShowComments] = useState(false);
@@ -120,7 +118,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isDownloadingPoster, setIsDownloadingPoster] = useState(false);
+  const [, setIsDownloadingPoster] = useState(false);
 
   const isAuthor = user && user.id === post.userId;
   const authorName = post.userName || 'Community Feeder';
@@ -156,6 +154,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     if (!commentInput.trim()) return;
     addCommentToPost(post.id, commentInput.trim());
     setCommentInput('');
+    if (!showComments) setShowComments(true);
   };
 
   const handleDownloadMedia = async (url: string) => {
@@ -184,7 +183,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleDelete = async () => {
     setShowMoreMenu(false);
-    if (!window.confirm('Are you sure you want to permanently delete this post from Cloud Firestore?')) {
+    if (!window.confirm('Are you sure you want to permanently delete this post?')) {
       return;
     }
 
@@ -196,68 +195,73 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
-  const hasMedia = post.media && post.media.length > 0;
+  const hasMedia = Array.isArray(post.media) && post.media.length > 0;
+  const commentsCount = post.commentsCount || (post.comments?.length || 0);
 
   return (
     <>
-      <article className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 hover:border-slate-200 transition-all font-sans shadow-xs">
-        {/* Header: User Avatar, Name, Location/Time, Community Pill, More Menu */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3">
+      <article className="bg-white dark:bg-slate-900 border-y sm:border border-slate-200/80 dark:border-slate-800 sm:rounded-2xl hover:border-slate-300 dark:hover:border-slate-700 transition-all font-sans shadow-2xs overflow-hidden">
+        
+        {/* ================================================================= */}
+        {/* 1. POST HEADER (Author Avatar, Name, @username, Time, More action)*/}
+        {/* ================================================================= */}
+        <div className="p-3 sm:p-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button
               onClick={handleOpenAuthorProfile}
-              className="rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 hover:opacity-90 transition-opacity"
+              className="rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 hover:opacity-90 transition-opacity flex-shrink-0 cursor-pointer"
               title={`View ${post.userName}'s profile`}
             >
               <img
-                src={post.userAvatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-                alt={post.userName}
-                className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                src={authorAvatar}
+                alt={authorName}
+                className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
                 referrerPolicy="no-referrer"
               />
             </button>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   onClick={handleOpenAuthorProfile}
-                  className="text-xs font-bold text-slate-800 leading-tight hover:text-green-700 transition-colors text-left"
+                  className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight hover:text-green-700 dark:hover:text-green-400 transition-colors text-left truncate cursor-pointer"
                 >
-                  {post.userName}
+                  {authorName}
                 </button>
                 {post.type === 'help' && (
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-red-700 bg-red-50 rounded-full border border-red-200 uppercase flex items-center gap-1">
+                  <span className="px-2 py-0.5 text-[9px] font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/60 rounded-full border border-red-200 dark:border-red-900 uppercase flex items-center gap-1">
                     <AlertTriangle className="w-2.5 h-2.5" /> Urgent Rescue
                   </span>
                 )}
                 {post.type === 'feeding' && (
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-green-700 bg-green-50 rounded-full border border-green-200 flex items-center gap-1">
-                    🐾 Feeding Update
+                  <span className="px-2 py-0.5 text-[9px] font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/60 rounded-full border border-green-200 dark:border-green-800 flex items-center gap-1">
+                    🐾 Feeding
                   </span>
                 )}
                 {post.type === 'adoption' && (
-                  <span className="px-2 py-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-200 flex items-center gap-1">
+                  <span className="px-2 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                     🏡 Adoption
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 {post.userLocation && (
                   <>
-                    <span className="text-[11px] text-slate-500 font-medium flex items-center gap-0.5">
-                      <MapPin className="w-3 h-3 text-slate-400" /> {post.userLocation}
+                    <span className="flex items-center gap-0.5 truncate max-w-[130px] sm:max-w-[180px]">
+                      <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" /> {post.userLocation}
                     </span>
-                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
                   </>
                 )}
-                <span className="text-[11px] text-slate-400">{post.createdAt}</span>
+                <span className="text-slate-400">{post.createdAt || 'Recent'}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 relative">
+          {/* More Action Menu */}
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               aria-label="More options"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -266,13 +270,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             {showMoreMenu && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setShowMoreMenu(false)} />
-                <div className="absolute right-0 top-8 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-8 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-150">
                   <button
                     onClick={() => {
                       toggleSavePost(post.id);
                       setShowMoreMenu(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/70 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
                   >
                     <Bookmark className="w-4 h-4" />
                     <span>{post.isSaved ? 'Remove Bookmark' : 'Save Post'}</span>
@@ -283,7 +287,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       setShowShareModal(true);
                       setShowMoreMenu(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/70 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
                   >
                     <Share2 className="w-4 h-4" />
                     <span>Share Post</span>
@@ -295,7 +299,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         handleDownloadMedia(post.media[0]);
                         setShowMoreMenu(false);
                       }}
-                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/70 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                       <span>Download Image</span>
@@ -307,7 +311,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       handleDownloadOfficialPoster();
                       setShowMoreMenu(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-green-50 flex items-center gap-2.5 text-green-700 font-semibold"
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-green-50 dark:hover:bg-green-950/40 flex items-center gap-2.5 text-green-700 dark:text-green-400 font-semibold cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Generate Poster (PNG)</span>
@@ -315,11 +319,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
                   {isAuthor && (
                     <>
-                      <div className="my-1 border-t border-slate-100" />
+                      <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
                       <button
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-50 flex items-center gap-2.5 text-red-600 font-semibold transition-colors disabled:opacity-50"
+                        className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2.5 text-red-600 dark:text-red-400 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                         id={`delete-post-${post.id}`}
                       >
                         {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -333,54 +337,53 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </div>
 
-        {/* Tags Row: Community and/or Animal */}
-        {(post.communityName || post.animalName) && (
-          <div className="flex items-center gap-2 flex-wrap mb-2.5">
-            {post.communityName && (
-              <button
-                onClick={() => post.communityId && setActiveCommunityId(post.communityId)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-green-800 bg-green-50 hover:bg-green-100 rounded-full transition-colors border border-green-200"
-              >
-                <span>{post.communityIcon || '🌿'}</span>
-                <span>{post.communityName}</span>
-              </button>
-            )}
+        {/* ================================================================= */}
+        {/* 2. CAPTION & TAGS (Positioned above media per social standard)    */}
+        {/* ================================================================= */}
+        <div className="px-3.5 sm:px-4 pb-2.5 text-xs sm:text-sm leading-relaxed">
+          {post.content && (
+            <p className="text-slate-800 dark:text-slate-200 whitespace-pre-line">
+              {post.content}
+            </p>
+          )}
 
-            {post.animalName && (
-              <button
-                onClick={() => post.animalId && setActiveAnimalId(post.animalId)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors border border-slate-200"
-              >
-                {post.animalAvatar ? (
-                  <img
-                    src={post.animalAvatar}
-                    alt={post.animalName}
-                    className="w-3.5 h-3.5 rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
+          {/* Associated Community or Animal tags */}
+          {(post.communityName || post.animalName) && (
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              {post.communityName && (
+                <button
+                  onClick={() => post.communityId && setActiveCommunityId(post.communityId)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/60 hover:bg-green-100 dark:hover:bg-green-900/60 rounded-full transition-colors border border-green-200 dark:border-green-800 cursor-pointer"
+                >
+                  <span>{post.communityIcon || '🌿'}</span>
+                  <span>{post.communityName}</span>
+                </button>
+              )}
+
+              {post.animalName && (
+                <button
+                  onClick={() => post.animalId && setActiveAnimalId(post.animalId)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-full transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+                >
                   <span>🐾</span>
-                )}
-                <span>About {post.animalName}</span>
-              </button>
-            )}
-          </div>
-        )}
+                  <span>About {post.animalName}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
-        {/* Post Content Text */}
-        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line mb-3">
-          {post.content}
-        </p>
-
-        {/* Media Carousel / Grid */}
+        {/* ================================================================= */}
+        {/* 3. POST MEDIA (Edge-to-edge / Full visual prominence)             */}
+        {/* ================================================================= */}
         {hasMedia && (
-          <div className="rounded-2xl overflow-hidden mb-3 border border-slate-100 bg-slate-900/5">
+          <div className="w-full bg-slate-950 overflow-hidden border-y border-slate-100 dark:border-slate-800 relative">
             {post.media.length === 1 ? (
-              <div className="aspect-[4/3] w-full max-h-[460px] overflow-hidden bg-slate-950 relative flex items-center justify-center">
+              <div className="aspect-[4/3] sm:aspect-[16/10] w-full max-h-[500px] overflow-hidden bg-slate-950 relative flex items-center justify-center">
                 <PostMediaItem url={post.media[0]} postType={post.type} alt="Post media" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-1 max-h-[380px] overflow-hidden bg-slate-950">
+              <div className="grid grid-cols-2 gap-0.5 max-h-[420px] overflow-hidden bg-slate-950">
                 {post.media.map((url, i) => (
                   <div key={i} className="aspect-square overflow-hidden bg-slate-950 relative flex items-center justify-center">
                     <PostMediaItem url={url} postType={post.type} alt={`Post media ${i + 1}`} />
@@ -391,97 +394,143 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         )}
 
-        {/* Action Bar (Like, Comment, Share, Bookmark) */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-600 font-semibold">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => toggleLikePost(post.id)}
-              id={`like-post-${post.id}`}
-              className={`flex items-center gap-1.5 py-1 px-2 rounded-xl hover:bg-red-50 transition-colors ${
-                post.isLiked ? 'text-red-600 font-bold' : 'text-slate-600 hover:text-red-600'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-600 stroke-red-600' : ''}`} />
-              <span>{post.likesCount}</span>
-            </button>
-
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1.5 py-1 px-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-600"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>{post.commentsCount}</span>
-            </button>
+        {/* ================================================================= */}
+        {/* 4. ENGAGEMENT METRICS LINE (Likes count & comments count)         */}
+        {/* ================================================================= */}
+        <div className="px-3.5 sm:px-4 py-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] shadow-2xs">
+              <Heart className="w-2.5 h-2.5 fill-white stroke-white" />
+            </span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              {post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
-              title="Share"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => toggleSavePost(post.id)}
-              className={`p-1.5 rounded-xl hover:bg-slate-100 transition-colors ${
-                post.isSaved ? 'text-green-700' : 'text-slate-500'
-              }`}
-              title={post.isSaved ? 'Saved' : 'Save'}
-            >
-              <Bookmark className={`w-4 h-4 ${post.isSaved ? 'fill-green-700' : ''}`} />
-            </button>
+          <div className="flex items-center gap-3 text-xs">
+            {commentsCount > 0 && (
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="hover:underline cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              >
+                {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Comments Section */}
-        {showComments && (
-          <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
-            {/* New Comment Input */}
-            <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={commentInput}
-                onChange={e => setCommentInput(e.target.value)}
-                placeholder="Write a comment..."
-                className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white transition-all text-slate-800"
-              />
-              <button
-                type="submit"
-                disabled={!commentInput.trim()}
-                className="p-2 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-40 transition-colors shadow-2xs"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
+        {/* ================================================================= */}
+        {/* 5. SOCIAL ACTION BAR (Like, Comment, Share, Bookmark with text)   */}
+        {/* ================================================================= */}
+        <div className="px-1.5 sm:px-3 py-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-slate-600 dark:text-slate-300">
+          {/* Like */}
+          <button
+            onClick={() => toggleLikePost(post.id)}
+            id={`like-post-${post.id}`}
+            className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              post.isLiked
+                ? 'text-red-600 dark:text-red-400 bg-red-50/70 dark:bg-red-950/30'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+            title={post.isLiked ? 'Unlike' : 'Like'}
+          >
+            <Heart className={`w-4 h-4 transition-transform active:scale-125 ${post.isLiked ? 'fill-red-600 stroke-red-600' : ''}`} />
+            <span>Like</span>
+          </button>
 
-            {/* Existing Comments */}
-            {post.comments && post.comments.length > 0 ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {post.comments.map(c => (
-                  <div key={c.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={c.userAvatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=c'}
-                          alt={c.userName}
-                          className="w-5 h-5 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className="font-bold text-slate-800">{c.userName}</span>
+          {/* Comment */}
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            title="Comment"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Comment</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Share</span>
+          </button>
+
+          {/* Bookmark */}
+          <button
+            onClick={() => toggleSavePost(post.id)}
+            className={`p-1.5 sm:px-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+              post.isSaved ? 'text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+            title={post.isSaved ? 'Saved' : 'Save'}
+          >
+            <Bookmark className={`w-4 h-4 ${post.isSaved ? 'fill-green-700 dark:fill-green-400' : ''}`} />
+          </button>
+        </div>
+
+        {/* ================================================================= */}
+        {/* 6. COMMENTS PREVIEW & INLINE COMMENT INPUT                        */}
+        {/* ================================================================= */}
+        <div className="px-3.5 sm:px-4 pb-3 border-t border-slate-100 dark:border-slate-800/80 pt-2.5">
+          {commentsCount > 0 && !showComments && (
+            <button
+              onClick={() => setShowComments(true)}
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium py-1 transition-colors cursor-pointer"
+            >
+              View all {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+            </button>
+          )}
+
+          {showComments && (
+            <div className="space-y-2 mb-3">
+              {/* Existing Comments List */}
+              {post.comments && post.comments.length > 0 ? (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {post.comments.map(c => (
+                    <div key={c.id} className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-750 text-xs">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <img
+                            src={c.userAvatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=c'}
+                            alt={c.userName}
+                            className="w-4 h-4 rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className="font-bold text-slate-800 dark:text-white">{c.userName}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">{c.createdAt}</span>
                       </div>
-                      <span className="text-[10px] text-slate-400">{c.createdAt}</span>
+                      <p className="text-slate-700 dark:text-slate-300 pl-5.5">{c.content}</p>
                     </div>
-                    <p className="text-slate-700 pl-7">{c.content}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[11px] text-slate-400 text-center py-2">No comments yet. Be the first to comment!</p>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 py-1">No comments yet. Be the first to reply!</p>
+              )}
+            </div>
+          )}
+
+          {/* Inline Comment Input Form */}
+          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 mt-1">
+            <input
+              type="text"
+              value={commentInput}
+              onChange={e => setCommentInput(e.target.value)}
+              placeholder="Add a comment for caregivers..."
+              className="flex-1 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white dark:focus:bg-slate-800 transition-all text-slate-800 dark:text-white placeholder:text-slate-400"
+            />
+            <button
+              type="submit"
+              disabled={!commentInput.trim()}
+              className="p-2 bg-green-700 hover:bg-green-800 text-white rounded-xl disabled:opacity-40 transition-colors shadow-2xs cursor-pointer"
+              title="Post comment"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
       </article>
 
       {showShareModal && (

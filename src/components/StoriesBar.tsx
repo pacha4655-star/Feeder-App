@@ -95,7 +95,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories: propStories }) 
 
   return (
     <>
-      <div className="bg-white border-b border-slate-100 py-3 px-3 sm:px-4 shadow-2xs font-sans w-full overflow-hidden">
+      <div className="bg-transparent font-sans w-full overflow-hidden">
         <div className="flex items-center gap-3 sm:gap-4 md:gap-5 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap w-full">
           {/* 1. Your Story item */}
           <div className="flex flex-col items-center flex-shrink-0 group">
@@ -110,10 +110,10 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories: propStories }) 
                   className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all ${
                     hasMyStory
                       ? 'bg-gradient-to-tr from-green-600 via-emerald-500 to-teal-500 p-[2px] shadow-xs group-hover:scale-105'
-                      : 'border-2 border-dashed border-green-600 bg-slate-50 group-hover:border-green-700 p-0.5'
+                      : 'border-2 border-dashed border-green-600 bg-slate-50 dark:bg-slate-800 group-hover:border-green-700 p-0.5'
                   }`}
                 >
-                  <div className="w-full h-full bg-white rounded-full p-0.5 overflow-hidden">
+                  <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full p-0.5 overflow-hidden">
                     <img
                       src={user?.avatar || defaultAvatar(user?.id || 'guest')}
                       alt="Your story"
@@ -133,14 +133,14 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories: propStories }) 
                   e.stopPropagation();
                   setShowCreateStory(true);
                 }}
-                className="absolute bottom-0 right-0 w-5 h-5 bg-green-600 hover:bg-green-700 rounded-full border-2 border-white flex items-center justify-center text-white shadow-xs hover:scale-110 active:scale-95 transition-transform"
+                className="absolute bottom-0 right-0 w-5 h-5 bg-green-600 hover:bg-green-700 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-white shadow-xs hover:scale-110 active:scale-95 transition-transform"
                 title="Add a new story"
                 id="create-story-trigger"
               >
                 <Plus className="w-3 h-3 stroke-[3]" />
               </button>
             </div>
-            <span className="text-[11px] font-bold text-slate-800 mt-1.5 truncate max-w-[64px] sm:max-w-[72px] text-center leading-tight">
+            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mt-1.5 truncate max-w-[64px] sm:max-w-[72px] text-center leading-tight">
               Your Story
             </span>
           </div>
@@ -162,11 +162,11 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories: propStories }) 
                   <div
                     className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all ${
                       hasSeen
-                        ? 'border-2 border-slate-300 p-0.5'
+                        ? 'border-2 border-slate-300 dark:border-slate-700 p-0.5'
                         : 'bg-gradient-to-tr from-green-600 via-emerald-500 to-amber-500 p-[2px] shadow-xs group-hover:scale-105'
                     }`}
                   >
-                    <div className="w-full h-full bg-white rounded-full p-0.5 overflow-hidden">
+                    <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full p-0.5 overflow-hidden">
                       <img
                         src={story.userAvatar || defaultAvatar(story.userId)}
                         alt={story.userName}
@@ -180,13 +180,13 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories: propStories }) 
                   </div>
 
                   {story.mediaType === 'video' && (
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 text-white rounded-full border-2 border-white flex items-center justify-center">
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 text-white rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
                       <Video className="w-2.5 h-2.5" />
                     </div>
                   )}
                 </div>
 
-                <span className="text-[11px] font-semibold text-slate-700 mt-1.5 truncate max-w-[64px] sm:max-w-[72px] text-center leading-tight">
+                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mt-1.5 truncate max-w-[64px] sm:max-w-[72px] text-center leading-tight">
                   {story.userName}
                 </span>
               </button>

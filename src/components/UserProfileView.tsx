@@ -220,24 +220,24 @@ export const UserProfileView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-2xl sm:max-w-3xl mx-auto bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs font-sans overflow-hidden">
+    <div className="w-full max-w-2xl sm:max-w-3xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs font-sans overflow-hidden">
       {/* ========================================================================= */}
       {/* 1. HEADER (ONE ROW on mobile, compact, no horizontal scroll, no clipping) */}
       {/* ========================================================================= */}
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-3 sm:px-6 py-3 flex items-center justify-between border-b border-slate-100">
+      <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 sm:px-6 py-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
         {/* LEFT: Back button (when viewing another user or from subview) */}
         <div className="flex items-center min-w-[40px]">
           {!isSelf ? (
             <button
               onClick={handleBack}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:text-green-700 hover:bg-slate-100 transition-colors -ml-1 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:text-green-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors -ml-1 focus:outline-none focus:ring-2 focus:ring-green-500/30"
               aria-label="Go back"
               title="Back"
             >
               <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
             </button>
           ) : (
-            <span className="text-xs font-extrabold tracking-wider text-green-700 uppercase hidden xs:inline">
+            <span className="text-xs font-extrabold tracking-wider text-green-700 dark:text-green-400 uppercase hidden xs:inline">
               FEEDER
             </span>
           )}
@@ -245,10 +245,10 @@ export const UserProfileView: React.FC = () => {
 
         {/* CENTER: Profile Name / Feeder Identity */}
         <div className="flex-1 min-w-0 text-center px-2">
-          <h1 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+          <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
             {displayUser.name}
           </h1>
-          <p className="text-[11px] font-semibold text-slate-500 truncate -mt-0.5">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate -mt-0.5">
             @{displayUser.username || 'feeder'}
           </p>
         </div>
@@ -258,7 +258,7 @@ export const UserProfileView: React.FC = () => {
           {isSelf ? (
             <button
               onClick={() => setShowSettings(true)}
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-700 hover:text-green-700 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-green-600/30"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-green-700 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-green-600/30 cursor-pointer"
               aria-label="Profile settings"
               id="profile-header-settings-button"
               title="Profile settings"
@@ -268,7 +268,7 @@ export const UserProfileView: React.FC = () => {
           ) : (
             <button
               onClick={handleShareProfile}
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-700 hover:text-green-700 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-green-600/30"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-green-700 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-green-600/30 cursor-pointer"
               aria-label="Share profile"
               id="profile-header-share-button"
               title="Share profile"
@@ -308,12 +308,12 @@ export const UserProfileView: React.FC = () => {
               {/* Posts Count */}
               <button
                 onClick={() => setActiveTab('posts')}
-                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
               >
-                <span className="text-base sm:text-lg font-extrabold text-slate-900 group-hover:text-green-700 transition-colors">
+                <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">
                   {allUserPosts.length}
                 </span>
-                <span className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                   Posts
                 </span>
               </button>
@@ -321,12 +321,12 @@ export const UserProfileView: React.FC = () => {
               {/* Followers Count */}
               <button
                 onClick={() => openFollowersList(displayUser, 'followers')}
-                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
               >
-                <span className="text-base sm:text-lg font-extrabold text-slate-900 group-hover:text-green-700 transition-colors">
+                <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">
                   {realFollowersCount}
                 </span>
-                <span className="text-[11px] font-semibold text-slate-500 group-hover:text-green-700 mt-0.5 transition-colors">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-green-700 dark:group-hover:text-green-400 mt-0.5 transition-colors">
                   Followers
                 </span>
               </button>
@@ -334,12 +334,12 @@ export const UserProfileView: React.FC = () => {
               {/* Following Count */}
               <button
                 onClick={() => openFollowersList(displayUser, 'following')}
-                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+                className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
               >
-                <span className="text-base sm:text-lg font-extrabold text-slate-900 group-hover:text-green-700 transition-colors">
+                <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">
                   {realFollowingCount}
                 </span>
-                <span className="text-[11px] font-semibold text-slate-500 group-hover:text-green-700 mt-0.5 transition-colors">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-green-700 dark:group-hover:text-green-400 mt-0.5 transition-colors">
                   Following
                 </span>
               </button>
@@ -350,18 +350,18 @@ export const UserProfileView: React.FC = () => {
         {/* User Identity & Bio Details */}
         <div className="mt-3 text-left">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
               {displayUser.name}
             </h2>
             {displayUser.roles && displayUser.roles.length > 0 && (
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-green-50 text-green-800 border border-green-200">
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/60">
                 🐾 {displayUser.roles[0]}
               </span>
             )}
           </div>
 
           {/* Location & Joined Date */}
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium mt-1 flex-wrap">
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 flex-wrap">
             {displayUser.location && (
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-slate-400" />
@@ -378,7 +378,7 @@ export const UserProfileView: React.FC = () => {
 
           {/* Real Bio */}
           {displayUser.bio && (
-            <p className="text-xs sm:text-sm text-slate-700 mt-2 leading-relaxed whitespace-pre-line">
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mt-2 leading-relaxed whitespace-pre-line">
               {displayUser.bio}
             </p>
           )}
@@ -393,7 +393,7 @@ export const UserProfileView: React.FC = () => {
               <button
                 onClick={() => setShowEditProfileModal(true)}
                 id="profile-edit-button"
-                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5 text-slate-200" />
                 <span>Edit Profile</span>
@@ -401,9 +401,9 @@ export const UserProfileView: React.FC = () => {
               <button
                 onClick={handleShareProfile}
                 id="profile-share-button"
-                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-100 hover:bg-slate-200/80 active:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/70"
+                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 active:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/70 dark:border-slate-700 cursor-pointer"
               >
-                <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                <Share2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                 <span>Share Profile</span>
               </button>
             </>
@@ -412,9 +412,9 @@ export const UserProfileView: React.FC = () => {
               <button
                 onClick={handleFollowToggle}
                 id="profile-follow-toggle-button"
-                className={`flex-1 h-9 sm:h-9.5 px-4 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs ${
+                className={`flex-1 h-9 sm:h-9.5 px-4 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer ${
                   isFollowing
-                    ? 'bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 border border-slate-200'
+                    ? 'bg-slate-100 dark:bg-slate-800 hover:bg-red-50 hover:text-red-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
                     : 'bg-green-700 hover:bg-green-800 text-white shadow-green-700/20'
                 }`}
               >
@@ -433,9 +433,9 @@ export const UserProfileView: React.FC = () => {
               <button
                 onClick={handleShareProfile}
                 id="profile-other-share-button"
-                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-100 hover:bg-slate-200/80 active:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/70"
+                className="flex-1 h-9 sm:h-9.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 active:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/70 dark:border-slate-700 cursor-pointer"
               >
-                <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                <Share2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                 <span>Share Profile</span>
               </button>
             </>
@@ -511,23 +511,23 @@ export const UserProfileView: React.FC = () => {
       {/* ========================================================================= */}
       {/* 5. CONTENT TABS (Posts | Media | Saved | Animals)                         */}
       {/* ========================================================================= */}
-      <div className="border-t border-slate-100">
-        <div className="flex items-center justify-around border-b border-slate-100 bg-slate-50/50">
+      <div className="border-t border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center justify-around border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">
           {/* Posts Tab */}
           <button
             onClick={() => setActiveTab('posts')}
             id="profile-tab-posts"
-            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative ${
+            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative cursor-pointer ${
               activeTab === 'posts'
-                ? 'text-green-700 bg-white'
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
+                ? 'text-green-700 dark:text-green-400 bg-white dark:bg-slate-900'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
             }`}
           >
             <Grid className="w-4 h-4 stroke-[2]" />
             <span>Posts</span>
             <span className="text-[10px] opacity-70 font-semibold">({allUserPosts.length})</span>
             {activeTab === 'posts' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500" />
             )}
           </button>
 
@@ -535,17 +535,17 @@ export const UserProfileView: React.FC = () => {
           <button
             onClick={() => setActiveTab('media')}
             id="profile-tab-media"
-            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative ${
+            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative cursor-pointer ${
               activeTab === 'media'
-                ? 'text-green-700 bg-white'
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
+                ? 'text-green-700 dark:text-green-400 bg-white dark:bg-slate-900'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
             }`}
           >
             <ImageIcon className="w-4 h-4 stroke-[2]" />
             <span>Media</span>
             <span className="text-[10px] opacity-70 font-semibold">({mediaPosts.length})</span>
             {activeTab === 'media' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500" />
             )}
           </button>
 
@@ -554,17 +554,17 @@ export const UserProfileView: React.FC = () => {
             <button
               onClick={() => setActiveTab('saved')}
               id="profile-tab-saved"
-              className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative ${
+              className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative cursor-pointer ${
                 activeTab === 'saved'
-                  ? 'text-green-700 bg-white'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
+                  ? 'text-green-700 dark:text-green-400 bg-white dark:bg-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
               }`}
             >
               <Bookmark className="w-4 h-4 stroke-[2]" />
               <span>Saved</span>
               <span className="text-[10px] opacity-70 font-semibold">({savedPosts.length})</span>
               {activeTab === 'saved' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500" />
               )}
             </button>
           )}
@@ -573,17 +573,17 @@ export const UserProfileView: React.FC = () => {
           <button
             onClick={() => setActiveTab('animals')}
             id="profile-tab-animals"
-            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative ${
+            className={`flex-1 py-3 flex items-center justify-center gap-1.5 text-xs font-bold transition-all relative cursor-pointer ${
               activeTab === 'animals'
-                ? 'text-green-700 bg-white'
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
+                ? 'text-green-700 dark:text-green-400 bg-white dark:bg-slate-900'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
             }`}
           >
             <PawPrint className="w-4 h-4 stroke-[2]" />
             <span>Animals</span>
             <span className="text-[10px] opacity-70 font-semibold">({userAnimals.length})</span>
             {activeTab === 'animals' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500" />
             )}
           </button>
         </div>
@@ -823,13 +823,13 @@ export const UserProfileView: React.FC = () => {
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col relative"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col relative"
           >
-            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-3xl">
-              <span className="text-xs font-bold text-slate-800">Post from {displayUser.name}</span>
+            <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between rounded-t-3xl">
+              <span className="text-xs font-bold text-slate-800 dark:text-white">Post from {displayUser.name}</span>
               <button
                 onClick={() => setSelectedGridPost(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 aria-label="Close post"
               >
                 <X className="w-4 h-4" />
