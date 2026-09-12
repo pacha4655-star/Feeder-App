@@ -10,9 +10,10 @@ import {
   Loader2,
   ArrowLeft,
   Sparkles,
-  HelpCircle,
-  Home,
-  Users
+  PawPrint,
+  BookOpen,
+  Users,
+  Scale
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FeederLogo } from './FeederLogo';
@@ -92,12 +93,12 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[440px] sm:max-w-lg md:max-w-4xl mx-auto h-[100dvh] sm:h-auto sm:max-h-[96dvh] md:max-h-none bg-white dark:bg-slate-900 rounded-none sm:rounded-3xl shadow-none sm:shadow-2xl border-0 sm:border border-slate-200/80 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row font-sans my-auto transition-all duration-200">
+    <div className="w-full max-w-[440px] sm:max-w-lg md:max-w-4xl mx-auto h-[100dvh] sm:h-auto sm:max-h-[96dvh] md:max-h-none bg-[#FAFCFA] dark:bg-slate-900 rounded-none sm:rounded-3xl shadow-none sm:shadow-2xl border-0 sm:border border-slate-200/80 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row font-sans my-auto transition-all duration-200">
       
       {/* ===================================================================== */}
       {/* DESKTOP HERO BANNER (Left column on md: and above)                   */}
       {/* ===================================================================== */}
-      <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#192A1D] via-[#214328] to-[#2E7D32] p-6 lg:p-8 flex-col justify-between relative text-white select-none">
+      <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#192A1D] via-[#214328] to-[#1E4D2B] p-6 lg:p-8 flex-col justify-between relative text-white select-none">
         <div>
           <div className="flex items-center justify-between mb-4">
             <FeederLogo size="md" showText={true} textColor="text-white" />
@@ -107,26 +108,29 @@ export const WelcomeScreen: React.FC = () => {
             A kinder world for <span className="text-green-400">every animal.</span>
           </h2>
           <p className="text-xs lg:text-sm text-green-100/90 mt-2.5 leading-relaxed">
-            Join a compassionate community dedicated to coordinating street animal feedings, veterinary emergency rescues, and ethical pet adoptions worldwide.
+            Connect &nbsp;•&nbsp; Care &nbsp;•&nbsp; Protect &nbsp;•&nbsp; Empower
+          </p>
+          <p className="text-[11px] text-green-200/80 mt-2 leading-relaxed">
+            Coordinating street animal feedings, veterinary emergency rescues, and ethical pet adoptions worldwide.
           </p>
         </div>
 
         {/* Hero Animal Visual (Desktop) */}
-        <div className="relative my-4 rounded-2xl overflow-hidden shadow-lg bg-white/10 border border-white/20 md:flex-1 min-h-[160px] max-h-56">
+        <div className="relative my-4 rounded-2xl overflow-hidden shadow-lg bg-white/10 border border-white/20 md:flex-1 min-h-[180px] max-h-60">
           <img
-            src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80"
+            src="/assets/feeder-login-reference.png"
             alt="Feeder Animal Friends"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-[center_34%]"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
           <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white font-medium">
             <span className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-medium">
               <Heart className="w-3 h-3 text-green-400 fill-green-400 flex-shrink-0" />
-              <span>Kind Care Network</span>
+              <span>Different Animals Same Love</span>
             </span>
-            <span className="bg-green-600 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-xs">
-              100% Real Care
+            <span className="bg-[#1E4D2B] backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-xs">
+              100% Real
             </span>
           </div>
         </div>
@@ -139,73 +143,92 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* ===================================================================== */}
-      {/* MOBILE-FIRST APP LOGIN CONTAINER (Follows Reference Hierarchy)        */}
+      {/* MOBILE-FIRST APP LOGIN CONTAINER (Matches Reference Layout Exactly)    */}
       {/* ===================================================================== */}
-      <div className="w-full md:w-7/12 flex flex-col justify-between bg-white dark:bg-slate-900 overflow-y-auto h-full max-h-[100dvh] sm:max-h-none">
+      <div className="w-full md:w-7/12 flex flex-col justify-between bg-[#FAFCFA] dark:bg-slate-900 overflow-y-auto h-full max-h-[100dvh] sm:max-h-none">
         
         {/* TOP + HERO SECTION */}
-        <div className="p-3.5 xs:p-4 sm:p-6 flex flex-col">
-          {/* Status-bar-safe Header with Official Feeder Logo */}
-          <div className={`pt-[max(0.25rem,env(safe-area-inset-top,0px))] flex items-center justify-between mb-1 sm:mb-2 ${animateEntrance ? 'anim-feeder-logo' : ''}`}>
-            <FeederLogo size="sm" showText={true} />
-            <span className="text-[10px] font-bold text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/60 px-2.5 py-0.5 rounded-full border border-green-200 dark:border-green-800">
-              Community
-            </span>
+        <div className="px-4 sm:px-6 pt-2 pb-1 flex flex-col">
+          {/* Status-bar-safe Header with Official Feeder Brand Centered */}
+          <div className={`pt-[max(0.5rem,env(safe-area-inset-top,0px))] flex flex-col items-center text-center ${animateEntrance ? 'anim-feeder-logo' : ''}`}>
+            <FeederLogo size="md" showText={true} textColor="text-[#1E4D2B] dark:text-white" />
           </div>
 
-          {/* Tagline & Short Intro */}
-          <div className={`my-1 sm:my-2 ${animateEntrance ? 'anim-feeder-tagline' : ''}`}>
-            <h1 className="text-lg xs:text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-['Outfit',sans-serif]">
+          {/* Tagline & Supporting Pillars (Matches Reference Text) */}
+          <div className={`text-center my-1.5 sm:my-2 ${animateEntrance ? 'anim-feeder-tagline' : ''}`}>
+            <h1 className="text-base xs:text-lg sm:text-xl font-extrabold text-[#1E4D2B] dark:text-green-300 tracking-tight leading-tight font-['Outfit',sans-serif]">
               A kinder world for every animal.
             </h1>
-            <p className="text-[11px] xs:text-xs text-slate-600 dark:text-slate-300 font-medium leading-snug mt-0.5">
-              Connecting compassionate caregivers, street animal feeders, and emergency rescues.
+            <p className="text-[10px] xs:text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider mt-0.5">
+              Connect &nbsp;•&nbsp; Care &nbsp;•&nbsp; Protect &nbsp;•&nbsp; Empower
             </p>
           </div>
 
-          {/* Hero Animal Image (Controlled Aspect Ratio, Responsive Sizing) */}
-          <div className={`relative rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 my-1 sm:my-2 h-28 xs:h-32 sm:h-36 md:h-44 w-full flex-shrink-0 ${animateEntrance ? 'anim-feeder-hero' : ''}`}>
+          {/* Hero Animal Image (Large, Beautiful Animal Group from Reference) */}
+          <div className={`relative rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 dark:border-slate-800 my-1 h-32 xs:h-36 sm:h-40 md:h-48 w-full flex-shrink-0 ${animateEntrance ? 'anim-feeder-hero' : ''}`}>
             <img
-              src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80"
+              src="/assets/feeder-login-reference.png"
               alt="Caring for animal friends"
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-[center_34%] select-none"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-white text-[10px] font-semibold">
-              <span className="flex items-center gap-1 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-full">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
+            
+            {/* Friendly ambient badges */}
+            <div className="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-white text-[9px] font-bold">
+              <span className="flex items-center gap-1 bg-black/55 backdrop-blur-xs px-2 py-0.5 rounded-full">
                 <Heart className="w-2.5 h-2.5 text-green-400 fill-green-400 flex-shrink-0" />
-                <span>Kind Care Network</span>
+                <span>Different Animals Same Love</span>
               </span>
-              <span className="bg-green-700/90 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-bold">
-                100% Real
+              <span className="bg-[#1E4D2B]/90 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-bold">
+                Humans for a kinder tomorrow
               </span>
             </div>
           </div>
         </div>
 
         {/* =================================================================== */}
-        {/* BOTTOM AUTHENTICATION PANEL (Rounded light panel matching reference)*/}
+        {/* BOTTOM AUTHENTICATION PANEL (Rounded white card matching reference) */}
         {/* =================================================================== */}
-        <div className={`bg-slate-50/90 dark:bg-slate-850/90 rounded-t-3xl sm:rounded-none border-t border-slate-200/80 dark:border-slate-800 p-3.5 xs:p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-between flex-shrink-0 ${animateEntrance ? 'anim-feeder-panel' : ''}`}>
+        <div className={`bg-white dark:bg-slate-850 rounded-t-[28px] sm:rounded-none border-t border-slate-200/80 dark:border-slate-800 px-4 py-3 sm:px-6 sm:py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-between flex-shrink-0 shadow-lg ${animateEntrance ? 'anim-feeder-panel' : ''}`}>
           
-          {/* Feature Icon Row (Real Feeder Capabilities) */}
-          <div className="grid grid-cols-4 gap-1.5 pb-2.5 mb-2 border-b border-slate-200/60 dark:border-slate-700/60 text-center">
-            <div className="flex flex-col items-center justify-center p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 shadow-2xs">
-              <span className="text-xs sm:text-sm">🐾</span>
-              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5">Feed</span>
+          {/* Feature Icon Row (6 features matching the reference composition) */}
+          <div className="grid grid-cols-6 gap-1 text-center pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-800 select-none">
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <PawPrint className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Find Help</span>
             </div>
-            <div className="flex flex-col items-center justify-center p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 shadow-2xs">
-              <span className="text-xs sm:text-sm">🚨</span>
-              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5">Rescue</span>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <Heart className="w-4 h-4 fill-current" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Adopt</span>
             </div>
-            <div className="flex flex-col items-center justify-center p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 shadow-2xs">
-              <span className="text-xs sm:text-sm">🏡</span>
-              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5">Adopt</span>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Support Feeding</span>
             </div>
-            <div className="flex flex-col items-center justify-center p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 shadow-2xs">
-              <span className="text-xs sm:text-sm">🤝</span>
-              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mt-0.5">Connect</span>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <Scale className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Know Rights</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Learn</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
+                <Users className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Community</span>
             </div>
           </div>
 
@@ -220,7 +243,7 @@ export const WelcomeScreen: React.FC = () => {
           {/* Main Authentication Controls */}
           {!showEmailForm ? (
             <div className="space-y-2">
-              {/* PRIMARY: Continue with Email */}
+              {/* PRIMARY CTA: Continue with Email (Forest Green Pill matching reference) */}
               <button
                 type="button"
                 onClick={() => {
@@ -228,28 +251,24 @@ export const WelcomeScreen: React.FC = () => {
                   setShowEmailForm(true);
                 }}
                 id="continue-with-email-btn"
-                className="w-full h-11 sm:h-12 px-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white font-bold text-xs sm:text-sm flex items-center justify-between shadow-md shadow-green-700/20 active:scale-[0.99] transition-all cursor-pointer"
+                className="w-full h-11 sm:h-12 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                    <Mail className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <span>Continue with Email</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-white/90" />
+                <Mail className="w-4 h-4 text-white" />
+                <span>Continue with Email</span>
+                <ArrowRight className="w-3.5 h-3.5 text-white/80 ml-1" />
               </button>
 
-              {/* SECONDARY: Continue with Google */}
+              {/* SECONDARY CTA: Continue with Google (White Pill with border matching reference) */}
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
                 id="continue-with-google"
-                className="w-full h-10.5 sm:h-11 px-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full h-11 sm:h-12 px-5 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+                    <Loader2 className="w-4 h-4 animate-spin text-green-700" />
                     <span>Connecting Google...</span>
                   </>
                 ) : (
@@ -265,29 +284,61 @@ export const WelcomeScreen: React.FC = () => {
                 )}
               </button>
 
-              {/* Existing Account / Create Account Toggle */}
-              <div className="text-center pt-1.5">
+              {/* OR Divider matching reference */}
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200 dark:border-slate-700" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold text-slate-400">
+                  <span className="bg-white dark:bg-slate-850 px-3">OR</span>
+                </div>
+              </div>
+
+              {/* CREATE AN ACCOUNT (Outline Pill matching reference) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMessage(null);
+                  setAuthMode('register');
+                  setShowEmailForm(true);
+                }}
+                id="create-account-button"
+                className="w-full h-11 sm:h-12 px-5 rounded-full border-1.5 border-[#1E4D2B] dark:border-green-500 text-[#1E4D2B] dark:text-green-400 font-bold text-xs sm:text-sm hover:bg-green-50/60 dark:hover:bg-green-950/30 flex items-center justify-center transition-all active:scale-[0.99] cursor-pointer"
+              >
+                Create an Account
+              </button>
+
+              {/* Already have an account? Log In */}
+              <div className="text-center pt-1">
                 <button
                   type="button"
                   id="toggle-auth-mode-button"
                   onClick={() => {
                     setErrorMessage(null);
-                    setAuthMode(authMode === 'login' ? 'register' : 'login');
+                    setAuthMode('login');
+                    setShowEmailForm(true);
                   }}
                   className="text-xs text-slate-600 dark:text-slate-400 font-medium py-1 transition-colors cursor-pointer"
                 >
-                  {authMode === 'register' ? (
-                    <>
-                      <span>Already have an account? </span>
-                      <span className="font-bold text-green-700 dark:text-green-400 hover:underline">Log In</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>New to Feeder? </span>
-                      <span className="font-bold text-green-700 dark:text-green-400 hover:underline">Create an Account</span>
-                    </>
-                  )}
+                  <span>Already have an account? </span>
+                  <span className="font-bold text-[#1E4D2B] dark:text-green-400 hover:underline">Log In</span>
                 </button>
+              </div>
+
+              {/* Pagination Dots matching reference */}
+              <div className="flex items-center justify-center gap-1.5 pt-1">
+                <span className="w-2 h-2 rounded-full bg-[#1E4D2B] dark:bg-green-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+              </div>
+
+              {/* Footer matching reference */}
+              <div className="text-center pt-1 text-[10px] text-slate-400">
+                <div className="flex items-center justify-center gap-1 font-semibold text-slate-600 dark:text-slate-300">
+                  <span>🍃</span>
+                  <span>feeder.life</span>
+                </div>
+                <p className="text-[9px] text-slate-400 mt-0.5">For animals. For people. For a better tomorrow.</p>
               </div>
             </div>
           ) : (
@@ -300,10 +351,10 @@ export const WelcomeScreen: React.FC = () => {
                   className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors py-1 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>All options</span>
+                  <span>Back to overview</span>
                 </button>
-                <span className="text-xs font-bold text-green-700 dark:text-green-400">
-                  {authMode === 'register' ? 'Create Account' : 'Sign In'}
+                <span className="text-xs font-bold text-[#1E4D2B] dark:text-green-400">
+                  {authMode === 'register' ? 'Create Verified Account' : 'Sign In'}
                 </span>
               </div>
 
@@ -320,7 +371,7 @@ export const WelcomeScreen: React.FC = () => {
                           onChange={e => setName(e.target.value)}
                           placeholder="Priya S."
                           required
-                          className="w-full h-8.5 pl-8 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/20"
+                          className="w-full h-9 pl-8 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1E4D2B] focus:ring-1 focus:ring-[#1E4D2B]/20"
                         />
                       </div>
                     </div>
@@ -334,7 +385,7 @@ export const WelcomeScreen: React.FC = () => {
                           value={username}
                           onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                           placeholder="priya"
-                          className="w-full h-8.5 pl-7 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/20"
+                          className="w-full h-9 pl-7 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1E4D2B] focus:ring-1 focus:ring-[#1E4D2B]/20"
                         />
                       </div>
                     </div>
@@ -352,7 +403,7 @@ export const WelcomeScreen: React.FC = () => {
                       placeholder="caregiver@domain.com"
                       required
                       id="login-email-input"
-                      className="w-full h-8.5 pl-8 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/20"
+                      className="w-full h-9 pl-8 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1E4D2B] focus:ring-1 focus:ring-[#1E4D2B]/20"
                     />
                   </div>
                 </div>
@@ -369,7 +420,7 @@ export const WelcomeScreen: React.FC = () => {
                       required
                       minLength={6}
                       id="login-password-input"
-                      className="w-full h-8.5 pl-8 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/20"
+                      className="w-full h-9 pl-8 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#1E4D2B] focus:ring-1 focus:ring-[#1E4D2B]/20"
                     />
                   </div>
                 </div>
@@ -378,7 +429,7 @@ export const WelcomeScreen: React.FC = () => {
                   type="submit"
                   disabled={isSubmitting}
                   id="login-submit-button"
-                  className="w-full h-10 px-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm shadow-green-700/20 active:scale-[0.99] transition-all disabled:opacity-50 mt-1 cursor-pointer"
+                  className="w-full h-11 px-5 rounded-full bg-[#1E4D2B] hover:bg-[#163c22] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] transition-all disabled:opacity-50 mt-1 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
@@ -395,7 +446,7 @@ export const WelcomeScreen: React.FC = () => {
               </form>
 
               {/* Mode toggle */}
-              <div className="text-center pt-1.5">
+              <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -409,14 +460,14 @@ export const WelcomeScreen: React.FC = () => {
                     : 'New to Feeder? Create an Account'}
                 </button>
               </div>
+
+              {/* Trust badge */}
+              <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>Protected with Firebase Auth</span>
+                <span className="font-semibold text-[#1E4D2B] dark:text-green-400">Feeder 2026</span>
+              </div>
             </div>
           )}
-
-          {/* Compact Trust Footer */}
-          <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400 font-medium flex-shrink-0">
-            <span>Protected with Firebase Auth</span>
-            <span className="font-semibold text-green-700 dark:text-green-400">Feeder 2026</span>
-          </div>
 
         </div>
       </div>
