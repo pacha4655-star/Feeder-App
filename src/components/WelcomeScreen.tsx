@@ -160,7 +160,7 @@ export const WelcomeScreen: React.FC = () => {
               A kinder world for every animal.
             </h1>
             <p className="text-[10px] xs:text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider mt-0.5">
-              Connect &nbsp;•&nbsp; Care &nbsp;•&nbsp; Protect &nbsp;•&nbsp; Empower
+              Connect • Care • Protect • Empower
             </p>
           </div>
 
@@ -198,37 +198,37 @@ export const WelcomeScreen: React.FC = () => {
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <PawPrint className="w-4 h-4" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Find Help</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Find Help</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Heart className="w-4 h-4 fill-current" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Adopt</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Adopt</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Support Feeding</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Support Feeding</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Scale className="w-4 h-4" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Know Rights</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Know Your Rights</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <BookOpen className="w-4 h-4" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Learn</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Learn & Explore</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#EAF2EC] dark:bg-green-950/60 flex items-center justify-center text-[#1E4D2B] dark:text-green-400 mb-0.5 shadow-2xs">
                 <Users className="w-4 h-4" />
               </div>
-              <span className="text-[8px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Community</span>
+              <span className="text-[7.5px] sm:text-[9px] font-medium text-slate-700 dark:text-slate-300 leading-tight">Join a Community</span>
             </div>
           </div>
 
