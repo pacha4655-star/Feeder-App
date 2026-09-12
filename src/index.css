@@ -58,4 +58,82 @@ html.dark body {
   overflow-x: hidden;
 }
 
+/* ========================================================================= */
+/* App Open Entrance Animation Sequence (700ms - 1000ms GPU-accelerated)     */
+/* ========================================================================= */
+@keyframes feederOpenLogo {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes feederOpenHeader {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes feederOpenVisual {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes feederOpenActions {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-feeder-logo {
+  animation: feederOpenLogo 550ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-feeder-header {
+  animation: feederOpenHeader 650ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+  opacity: 0;
+}
+
+.anim-feeder-visual {
+  animation: feederOpenVisual 700ms cubic-bezier(0.16, 1, 0.3, 1) 220ms forwards;
+  opacity: 0;
+}
+
+.anim-feeder-actions {
+  animation: feederOpenActions 700ms cubic-bezier(0.16, 1, 0.3, 1) 320ms forwards;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-feeder-logo,
+  .anim-feeder-header,
+  .anim-feeder-visual,
+  .anim-feeder-actions {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+
 
