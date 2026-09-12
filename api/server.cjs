@@ -998,6 +998,7 @@ backendRouter.post("/profile/sync", requireFirebaseAuth, async (req, res) => {
       }
     }
     let profileResult;
+    const coverUrl = (user.coverPhoto || user.cover_photo_url || "").trim();
     if (existingProfile) {
       const updatePayload = {
         name: name || existingProfile.name,
@@ -1009,12 +1010,25 @@ backendRouter.post("/profile/sync", requireFirebaseAuth, async (req, res) => {
       if (finalUsername) {
         updatePayload.username = finalUsername;
       }
+      if (user.coverPhoto !== void 0 || user.cover_photo_url !== void 0) {
+        updatePayload.cover_photo_url = coverUrl || null;
+      }
       let { data, error } = await supabaseAdmin.from("profiles").update(updatePayload).eq("firebase_uid", verifiedUid).select("*").single();
-      if (error && error.code === "42703" && updatePayload.username) {
-        delete updatePayload.username;
-        const retry = await supabaseAdmin.from("profiles").update(updatePayload).eq("firebase_uid", verifiedUid).select("*").single();
-        data = retry.data;
-        error = retry.error;
+      if (error && error.code === "42703") {
+        let modified = false;
+        if (updatePayload.username) {
+          delete updatePayload.username;
+          modified = true;
+        }
+        if (updatePayload.cover_photo_url !== void 0) {
+          delete updatePayload.cover_photo_url;
+          modified = true;
+        }
+        if (modified) {
+          const retry = await supabaseAdmin.from("profiles").update(updatePayload).eq("firebase_uid", verifiedUid).select("*").single();
+          data = retry.data;
+          error = retry.error;
+        }
       }
       if (error) throw error;
       profileResult = data;
@@ -1031,12 +1045,25 @@ backendRouter.post("/profile/sync", requireFirebaseAuth, async (req, res) => {
       if (finalUsername) {
         insertPayload.username = finalUsername;
       }
+      if (coverUrl) {
+        insertPayload.cover_photo_url = coverUrl;
+      }
       let { data, error } = await supabaseAdmin.from("profiles").insert(insertPayload).select("*").single();
-      if (error && error.code === "42703" && insertPayload.username) {
-        delete insertPayload.username;
-        const retry = await supabaseAdmin.from("profiles").insert(insertPayload).select("*").single();
-        data = retry.data;
-        error = retry.error;
+      if (error && error.code === "42703") {
+        let modified = false;
+        if (insertPayload.username) {
+          delete insertPayload.username;
+          modified = true;
+        }
+        if (insertPayload.cover_photo_url) {
+          delete insertPayload.cover_photo_url;
+          modified = true;
+        }
+        if (modified) {
+          const retry = await supabaseAdmin.from("profiles").insert(insertPayload).select("*").single();
+          data = retry.data;
+          error = retry.error;
+        }
       }
       if (error) throw error;
       profileResult = data;

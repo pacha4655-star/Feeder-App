@@ -16,6 +16,7 @@ export const mapProfileToUser = (row: any): User => {
     email: row.email || undefined,
     phone: undefined,
     avatar: row.photo_url || defaultAvatar,
+    coverPhoto: row.cover_photo_url || row.cover_photo || row.cover_url || undefined,
     bio: row.bio !== undefined && row.bio !== null ? row.bio : 'Compassionate animal lover, street feeder & pet protector.',
     location: row.location || '',
     roles: ['Feeder', 'Animal Lover'],

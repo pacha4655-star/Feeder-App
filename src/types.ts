@@ -17,6 +17,7 @@ export interface User {
   email?: string;
   phone?: string;
   avatar: string;
+  coverPhoto?: string;
   bio: string;
   location: string;
   coordinates?: { lat: number; lng: number };

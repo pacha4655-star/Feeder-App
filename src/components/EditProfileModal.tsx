@@ -34,6 +34,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
   const [bio, setBio] = useState(user?.bio || '');
   const [location, setLocation] = useState(user?.location || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [coverPhoto, setCoverPhoto] = useState(user?.coverPhoto || '');
   const [roles, setRoles] = useState<UserRole[]>(user?.roles || ['Feeder', 'Animal Lover']);
   const [interestInput, setInterestInput] = useState('');
   const [interests, setInterests] = useState<string[]>(user?.interests || ['Dogs', 'Cats', 'Street Animals']);
@@ -47,6 +48,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingPetPhoto, setIsUploadingPetPhoto] = useState(false);
 
   // Username validation & availability
@@ -57,6 +59,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
   }>({ checking: false, available: true });
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const petPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Prevent background page scrolling when modal is open
@@ -79,6 +82,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
       setBio(user.bio || '');
       setLocation(user.location || '');
       setAvatar(user.avatar || '');
+      setCoverPhoto(user.coverPhoto || '');
       setRoles(user.roles || ['Feeder', 'Animal Lover']);
       setInterests(user.interests || ['Dogs', 'Cats', 'Street Animals']);
       setPetName(user.petName || '');
@@ -148,6 +152,37 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
   }, [username, user?.username]);
 
   if (!isOpen) return null;
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      showToast('Please select a JPG, PNG, or WEBP image for cover.', 'error');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('Cover photo must be under 15MB.', 'error');
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      const downloadUrl = await uploadMediaFile(file, 'profiles');
+      setCoverPhoto(downloadUrl);
+      showToast('Cover photo uploaded! 🐾', 'success');
+    } catch (err: any) {
+      console.error('Cover photo upload failed:', err);
+      showToast(err.message || 'Failed to upload cover photo', 'error');
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -229,6 +264,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         bio: bio.trim(),
         location: location.trim(),
         avatar: avatar.trim(),
+        coverPhoto: coverPhoto.trim() || undefined,
         roles,
         interests,
         petName: petName.trim() || undefined,
@@ -295,27 +331,69 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         <div className="p-5 overflow-y-auto space-y-4 flex-1">
           {activeTab === 'profile' ? (
             <>
+              {/* Profile Cover Photo Upload */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Profile Cover Photo
+                    </label>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Wide landscape background for your public profile
+                    </p>
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{isUploadingCover ? 'Uploading...' : 'Change Cover Photo'}</span>
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      onChange={handleCoverUpload}
+                      disabled={isUploadingCover}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="relative h-24 sm:h-28 w-full rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                  <img
+                    src={coverPhoto || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=80'}
+                    alt="Profile Cover Preview"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  {isUploadingCover && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white gap-2 text-xs font-bold">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Uploading Cover Photo...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Avatar Upload */}
-              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div className="relative">
+              <div className="flex items-center gap-4 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="relative flex-shrink-0">
                   <img
                     src={avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=feeder'}
                     alt="Profile Avatar"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-green-600"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-green-600 shadow-xs"
                     referrerPolicy="no-referrer"
                   />
                   {isUploadingAvatar && (
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white">
+                    <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center text-white">
                       <Loader2 className="w-5 h-5 animate-spin" />
                     </div>
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Caregiver Avatar</label>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors">
+                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">Profile Picture</label>
+                  <p className="text-[10px] text-slate-400 mb-2">Overlaps your cover banner</p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors">
                     <Camera className="w-3.5 h-3.5" />
-                    <span>{isUploadingAvatar ? 'Uploading...' : 'Upload from Device'}</span>
+                    <span>{isUploadingAvatar ? 'Uploading...' : 'Change Profile Photo'}</span>
                     <input
                       ref={avatarInputRef}
                       type="file"
