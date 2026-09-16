@@ -1,6 +1,0 @@
-{
-  "name": "Feeder",
-  "description": "Where animal people connect — Community, Rescue, Feeding, Adoption & Animal Care platform.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

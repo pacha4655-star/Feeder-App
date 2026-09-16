@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Feeder</string>
-    <string name="title_activity_main">Feeder</string>
-    <string name="package_name">org.feeder.app</string>
-    <string name="custom_url_scheme">org.feeder.app</string>
-</resources>

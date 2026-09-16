@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth/session';
+import { MessagingService } from '@/lib/services/messaging';
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id: conversationId } = await context.params;
+    const messages = MessagingService.getMessages(conversationId, user.id);
+
+    return NextResponse.json({ success: true, messages });
+  } catch (error: any) {
+    if (error.message?.includes('Not authorized')) {
+      return NextResponse.json({ error: 'You are not a participant in this conversation.' }, { status: 403 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id: conversationId } = await context.params;
+    const body = await request.json();
+    const { text, mediaUrl } = body;
+
+    if (!text || !text.trim()) {
+      return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
+    }
+
+    const message = MessagingService.sendMessage(conversationId, user.id, text.trim(), mediaUrl);
+
+    return NextResponse.json({ success: true, message });
+  } catch (error: any) {
+    if (error.message?.includes('Not authorized')) {
+      return NextResponse.json({ error: 'You are not a participant in this conversation.' }, { status: 403 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

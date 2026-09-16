@@ -1,0 +1,19 @@
+# robots.txt for Feeder.life
+User-agent: *
+Allow: /
+Allow: /communities
+Allow: /sos
+Allow: /nearby
+Allow: /feeding
+Allow: /ask-feeder
+Allow: /login
+Allow: /signup
+
+# Disallow private user-specific paths
+Disallow: /api/
+Disallow: /settings
+Disallow: /messages
+Disallow: /admin
+Disallow: /onboarding
+
+Sitemap: https://feeder.life/sitemap.xml
